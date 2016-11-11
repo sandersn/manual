@@ -35,6 +35,25 @@ Surprisingly, a checker gets created every time the language service
 requests information because it tries to present an immutable
 interface. This works because the checker is very lazy.
 
+### Trivia
+
+#### Optionality
+
+Optionality is represented two different ways. The original way is a
+flag on `Symbol`. The second way is as a union type that includes
+`undefined`.
+
+If you are running with `strictNullChecks: true` then adding '?' after
+a property does two things: it marks the symbol as optional and it
+adds `| undefined` to the type of the property. You have to remember
+to do these two things yourself whenever you synthesise a property
+inside the compiler.
+
+Conversely, the compiler actually throws away `| undefined` if
+`strictNullChecks: false`. So you can't use *just* `maybeTypeOfKind(t,
+TypeFlags.Undefined)` to check for optionality. You also have to check
+`symbol.flags & SymbolFlags.Optional`.
+
 ## Transformer
 
 The transformer recently replaced the emitter. It replaces the
