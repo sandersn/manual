@@ -52,11 +52,10 @@ syntax and `class` is ES2015 syntax.
 
 The checker makes sure the types are right. 'Nuff said!
 
-Actually, it's
-20,000 lines long, and does almost everything that's not syntactic.
-Surprisingly, a checker gets created every time the language service
-requests information because it tries to present an immutable
-interface. This works because the checker is very lazy.
+Actually, it's 20,000 lines long, and does almost everything that's
+not syntactic. Surprisingly, a checker gets created every time the
+language service requests information because it tries to present an
+immutable interface. This works because the checker is very lazy.
 
 ### JSDoc
 
@@ -120,7 +119,27 @@ using different features.
 The emitter is then a fairly small AST printer that can print
 any TypeScript AST.
 
-TODO: This doesn't cover any implementation details!
+### Overview
+
+Since the binder sets up information for the transformer since it
+makes a complete pass over the AST anyway. Primarily, it marks
+individual nodes with their associated dialect. In the example below,
+`...x` is marked as ES2015, and `any[]` and `void` are marked as
+Typescript.
+
+```ts
+function f(...x: any[]): void {
+}
+```
+
+Then each transformer runs on the AST. The Typescript transformer
+mostly just throws away annotations. The ES2015 transformation
+actually has to emit ES5 code that implements the rest parameter.
+The transforms progressively convert Typescript into older and older
+Javascript dialects. If the target is something newer than ES3, then
+the transforms just stop running.
+
+TODO: This leaves out module transformers.
 
 ## Services
 
