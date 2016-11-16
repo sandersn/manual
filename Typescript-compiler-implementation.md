@@ -131,6 +131,34 @@ Conversely, the compiler actually throws away `| undefined` if
 TypeFlags.Undefined)` to check for optionality. You also have to check
 `symbol.flags & SymbolFlags.Optional`.
 
+#### Literal widening
+
+Literal widening is different from nullable widening. It
+doesn't happen in the same place, and it widens a subtype (the literal
+type) to a supertype (string, number or boolean). Nullable widening
+widens `undefined` and `null` to `any`. It probably wouldn't exist if
+`null` and `undefined` had been denotable types before 2.0.
+
+You can widen literals using two different functions,
+`getWidenedLiteralType` and `getBaseTypeOfLiteralType`.
+
+The difference is that `getBaseTypeOfLiteralType` unconditionally
+widens whereas `getWidenedLiteralType` only widens if the literal type
+is fresh. For full discussion of freshness,
+[see the PR that implemented it](https://github.com/Microsoft/TypeScript/pull/10676).
+
+Briefly, literal types start fresh if they arise from a literal
+expression. Fresh literal types widen when they are assigned to a
+non-cost/readonly location. Non-fresh literal types do not widen. For
+example,
+
+```ts
+const fresh = 1;
+type notFresh = 1;
+let f = fresh; // f is mutable, so '1' widens to 'number'
+let i: notFresh = 1; // even though i is mutable, it has type '1'
+```
+
 ## Transformer
 
 The transformer recently replaced the emitter. It replaces the
