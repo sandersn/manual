@@ -5,6 +5,30 @@ and its philosophy. Because it focusses on implementation, it's
 necessarily out-of-date and incomplete. Also, in this version, I
 totally make guesses about things I'm not sure about.
 
+## Overview
+
+The basic data structures used by the compiler (and elsewhere) are
+**Node**, **Symbol** and **Type**.
+
+### Node
+
+The parser produces nodes in the form of an Abstract Syntax Tree
+(AST). Nodes track syntax kind, location, and children. For example,
+`a + 1` produces a BinaryExpression with three children: an
+Identifier(a), a PlusToken and a LiteralExpression(1).
+
+### Symbol
+
+The binder produces nodes in the form of a symbol table. A symbol
+tracks the declaration(s) of an identifier. The declaration is a
+**Node**. For example, in `let a = 1`, the binder creates a symbol for
+`a`, which future uses of `a` can then look up in a symbol table.
+accessibility.
+
+### Type
+
+TODO: Write this.
+
 ## Parser
 
 It's a recursive descent parser. It's pretty resilient, so if you
