@@ -47,15 +47,34 @@ The parser parses JSDoc half-heartedly. You have to explicitly call
 Then once it starts parsing it uses a completely different tokeniser,
 `nextJSDocToken()`, from the normal parser. (It doesn't ignore
 whitespace and returns way fewer SyntaxKinds). And it parses
-everything, even things that exist in typescript, into completely
-separate AST nodes like JSDocReturnTag. There are a few exceptions to
-this: type literals call back into the normal parser.
+everything, even things that exist in Typescript, into completely
+separate AST nodes like JSDocArrayType for parsing `T[]`. There are a
+few exceptions to this: type literals call back into the normal
+parser.
 
-JSDoc storage is simple right now; perhaps too simple. A JSDoc comment
-is put on the node it occurred before. Since JSDoc supports non-local
-annotations, retrieval becomes complicated. Typescript chooses to
-stitch the information back together when it's needed, usually while
-the checker is running. More on that in the checker section.
+
+JSDoc is stored in the **jsDocComments** property of the node that
+it's associated with. Each JSDoc then contains a top-level **comment**
+and a list of **tags**. There are various kinds of tags, but they all
+have an associated string **comment** as well. For example:
+
+```ts
+/**
+ * simple function
+ * @returns nothing
+ */
+function f() { }
+```
+
+Attaches a JSDoc to `f` with `comment = "simple function"` and a
+JSDocReturnTag that has `comment = "nothing"`.
+
+Since JSDoc supports non-local annotations &mdash; parameter
+information usually occurs on a `@param` tag on the containing
+function, for example &mdash; retrieval becomes complicated.
+Typescript chooses to stitch the information back together when it's
+needed, usually while the checker is running. More on that in the
+checker section.
 
 ## Binder
 
@@ -92,9 +111,10 @@ JSDoc types in Typescript are *ignored*. It only uses the documentation.)
 That's different now because JSDoc is the only way to specify types in
 Javascript. But the checker still handles it in a very ad-hoc way
 &mdash; everywhere you might get some information from a type
-annotation, you also need to remember to check for JSDoc.
+annotation, you also need to remember to call `getJSDocType` if you
+are checking a Javascript file.
 
-Also, since JSDoc stores information non-locally, retrieving type
+Alas, since JSDoc stores information non-locally, retrieving type
 information for a specific node is not that easy. The worst example is
 parameters: type information can be stored as a comment for the
 parameter, for the function or for the variable that the function is
@@ -108,9 +128,14 @@ var /** @param {number} x - a */f =
 
 Typescript delays the work needed to stitch together this information
 until it's needed (as usual), hoping that (1) it won't be needed and
-(2) it won't be that hard to retrieve in the common case. Usually I
-add that (3) it will be cached, but I don't that's the case for JSDoc
-right now.
+(2) it won't be that hard to retrieve in the common case and (3) that
+once cached it will be needed again.
+
+Fortunately, `getJSDocType` conceals this work from you
+pretty well. If you're in the checker, that's probably all you'll
+need, except perhaps related functions like `getJSDocReturnTag` (to
+get the return type of a Javascript function) or `getJSDocTemplateTag`
+(to get the type parameters of a Javascript function).
 
 ### Trivia
 
