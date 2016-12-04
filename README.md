@@ -13,4 +13,5 @@ Manuals:
 
  * [Typescript compiler implementation](Typescript-compiler-implementation.md)
  * [Checker reduction plan](Checker-reduction-plan.md)
+ * [Upgrade node library to Typescript](Upgrade-node-library-to-Typescript.md)
 
