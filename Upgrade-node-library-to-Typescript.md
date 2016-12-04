@@ -15,7 +15,7 @@ exercise in upgrading a package to Typescript, so I thought you might
 want to follow along to see what's involved. Here are the topics I
 plan to cover:
 
-1. Compile using Typescript
+1. Compile with Typescript
 2. Switch to gulp
 3. Actually upgrade to Typescript
 4. Acquire types to make further development easier
@@ -26,7 +26,7 @@ You can follow
 on my fork of natural. That's probably too much detail, but I will
 reference specific commits from time to time.
 
-# Step 1: Compiling with Typescript
+# Step 1: Compile with Typescript
 
 This step is actually pretty easy. The first thing I did was add a
 `tsconfig.json` to the root of the project:
@@ -131,6 +131,118 @@ Once I finally got gulp copying the compiled files and regularly
 passing tests, I deleted the original source in `lib` from git and
 added `lib` to `.gitignore`. `lib` is now just the build output directory.
 
+# Step 3: Actually upgrade to Typescript
+
+So. Finally, I was ready to start adding types to everything. Well,
+almost. Actually, the first step is to find a nice small file to
+rename. I chose `analyzers/sentence_analyzer.ts` because there's only
+one file in the directory and the file itself isn't too big. Plus
+there's decent test coverage, as far as I can tell.
+
+## Fix imports/exports
+
+I still wasn't to adding types yet, though. First I had to [fix the
+imports and exports](https://github.com/sandersn/natural/commit/c1f14a0e0fd3d7f350d774852f58ad5ce2c8571c). This was pretty easy because Typescript has
+specific support for Node modules. I didn't have to adapt things to
+use ES6 modules, at least yet.
+
+Here is the changed import:
+
+```ts
+var _ = require("underscore")._;
+// becomes
+import _ = require("underscore");
+```
+
+and here's the changed export:
+
+```ts
+module.exports = Sentence;
+// becomes
+export = Sentence;
+```
+
+Using ES6 modules would be more complicated because underscore would
+need a default export (which it might) and Sentence would probably
+become a default export too, meaning that its users would need to change.
+
+## Upgrade to ESNext features
+
+For the first change, I decided to turn the `Sentences` class into a real ES6
+class. It changed from this:
+
+```ts
+var Sentences = function(pos, callback) {
+    this.posObj = pos;
+    this.senType = null;
+    callback(this);
+};
+
+Sentences.prototype.part = function(callback) {
+    var subject = [],
+    // ....
+```
+
+To this:
+
+```ts
+class Sentences {
+    posObj: any;
+    senType: any;
+    constructor(pos, callback) {
+        this.posObj = pos;
+        this.senType = null;
+        callback(this);
+    }
+
+    part(callback) {
+        var subject = [],
+        // ...
+```
+
+There are lots of new features in ES6 and above, and I won't talk about
+them too much since there are lots of better places to learn about them.
+
+## Add types
+
+I also added types to the properties and parameters. I left the bodies alone for now,
+for three reasons.
+
+1. The Typescript compiler is pretty good at inferring the types already.
+2. I can easily see all the places the compiler can't infer when I turn on `noImplicityAny: true`.
+3. The scope of an individual type annotation is small and doesn't add much value compared to annotations of interfaces.
+
+I started off with `part`, the first method, and looked for all uses
+of its parameter `callback`:
+
+```ts
+part(callback) {
+    var subject = [],
+    // ...
+    callback(this);
+}
+```
+
+With only one use, the type is easy to infer:
+
+```ts
+part(callback: (t: this) => void) {
+    var subject = [],
+    // ...
+    callback(this);
+}
+```
+
+I could have also used `(t: Sentences) => void` but I had to think
+less to use `this`. I added a couple more types like this and noticed
+that the properties of `Sentence`, `posObj` and `senType`, were pretty
+easy to infer from usage too.
+
+TODO: Explain this inference process.
+
+
+## Repeat
+
 # Addendum: Full outline
 
 1. Add tsconfig
@@ -141,6 +253,7 @@ added `lib` to `.gitignore`. `lib` is now just the build output directory.
   c. Add tasks to copy other stuff
   d. Add task to test
 3. Actually upgrade to TS
+  a. Fix imports and exports
   a. Add types
   b. Add a types file
   c. Upgrade to ESNext features
