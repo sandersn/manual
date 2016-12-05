@@ -58,7 +58,7 @@ it's associated with. Each JSDoc then contains a top-level **comment**
 and a list of **tags**. There are various kinds of tags, but they all
 have an associated string **comment** as well. For example:
 
-```ts
+```js
 /**
  * simple function
  * @returns nothing
@@ -120,7 +120,7 @@ parameters: type information can be stored as a comment for the
 parameter, for the function or for the variable that the function is
 assigned to:
 
-```ts
+```js
 var /** @param {number} x - a */f =
   /** @param {number} x - b */ function (/** c */x) {
   };

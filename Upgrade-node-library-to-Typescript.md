@@ -168,8 +168,8 @@ become a default export too, meaning that its users would need to change.
 
 ## Upgrade to ESNext features
 
-For the first change, I decided to turn the `Sentences` class into a real ES6
-class. It changed from this:
+For the first change, I decided [to turn the `Sentences` class into a real ES6
+class](https://github.com/sandersn/natural/commit/1e0cd86611e7284535e03e52c792d836bc4583f6). It changed from this:
 
 ```ts
 var Sentences = function(pos, callback) {
@@ -235,17 +235,97 @@ part(callback: (t: this) => void) {
 
 I could have also used `(t: Sentences) => void` but I had to think
 less to use `this`. I added a couple more types like this and noticed
-that the properties of `Sentence`, `posObj` and `senType`, were pretty
-easy to infer from usage too.
+that `Sentences.posObj` and `Sentences.senType` were pretty easy to
+infer from usage too. To do this, I first did Find All References on
+`senType`.
 
-TODO: Explain this inference process.
+This produced the following output (from
+[tide](https://github.com/ananthakumaran/tide); your output may vary):
 
+```
+src/natural/analyzers/sentence_analyzer.ts
+   62:    senType: any;
+   65:        this.senType = null;
+  160:                this.senType = "COMMAND";
+  163:                this.senType = "INTERROGATIVE";
+  168:                this.senType = "INTERROGATIVE";
+  170:                this.senType = "UNKNOWN";
+  174:            case "?": this.senType = "INTERROGATIVE"; break;
+  175:            case "!": this.senType = (implicitYou) ? "COMMAND":"EXCLAMATORY"; break;
+  176:            case ".": this.senType = (implicitYou) ? "COMMAND":"DECLARATIVE";	break;
+  182:            return this.senType;
+```
+
+From looking at that, it's pretty obvious that the declaration should
+be `senType: string | null` since those are the only two types that
+`senType` ever has.
+
+`posObj` only ever has one type, but it is a more complex object type.
+I started the same way, with Find All References:
+
+```
+src/natural/analyzers/sentence_analyzer.ts
+   58:    posObj: {
+   64:        this.posObj = pos;
+   76:        for (var i = 0; i < this.posObj.tags.length; i++) {
+   77:            if (this.posObj.tags[i].pos == "VB") {
+   82:                    if (this.posObj.tags[i - 1].pos != "EX") {
+   85:                        predicat.push(this.posObj.tags[i].token);
+   // ... rest of output ...
+```
+
+I won't lie, I only looked at the first five lines of this or so. It's
+obvious that `posObj` is pretty much an object with one field `tags`
+and that `tags` is an array of objects. So I created a barebones Tag type:
+
+```ts
+interface Tag {
+  pos: string;
+  token: any;
+}
+class Sentences {
+  posObj: { tags: Tag[] };
+  // ... existing code ...
+}
+```
+
+I could easily see `pos` was a string, but `token` wasn't obvious so I
+just stuck `any` there to start. Then I waited for red squigglies to
+show up. This highlighted the properties of `Tag` that I missed. I
+also missed a method on `posObj` that returned an augmented array.
+Here's what I ended up with:
+
+```ts
+interface Tag {
+    spos: string;
+    pos: string;
+    token: string;
+    added: boolean;
+    pp?: boolean;
+}
+
+interface Punctuation extends Array<any> {
+    pos: any;
+    token: any;
+}
+class Sentences {
+  posObj: {
+    tags: Tag[];
+    punct(): Punctuation;
+  };
+  // ... existing code ...
+```
+
+I got the rest of those types by the same method: look at Find All
+References for each thing and look for an obvious type. Try the
+obvious type and then wait for red squigglies to help you refine the type.
 
 # Acquire types
 
 At this point I upgraded the next directory alphabetically. This was
-the brill_pos_tagger. I started at what I thought was a leaf file (one
-with no imports), but it turns out that it had a dependency on log4js.
+the brill_pos_tagger. I [started with Predicate](https://github.com/sandersn/natural/commit/bba4f36223dea1d831a84be8e8aa7b1e42970ebb) since I thought it was
+a leaf file (one with no imports), but it turns out that it had a
+dependency on log4js.
 
 I have to admit, I got stuck here. I made the same transformation as
 for underscore and got an error that the log4js module was not found.
