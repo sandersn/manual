@@ -241,7 +241,27 @@ easy to infer from usage too.
 TODO: Explain this inference process.
 
 
-## Repeat
+# Acquire types
+
+At this point I upgraded the next directory alphabetically. This was
+the brill_pos_tagger. I started at what I thought was a leaf file (one
+with no imports), but it turns out that it had a dependency on log4js.
+
+I have to admit, I got stuck here. I made the same transformation as
+for underscore and got an error that the log4js module was not found.
+After messing with a couple of module resolution options, I decided to
+work around the problem by doing something I was going to do
+eventually: install typings for the libraries that `natural` uses.
+
+Turns out this is really easy:
+
+```sh
+$ npm install --save @types/log4js
+```
+
+Once I did that, the compiler started looking in `node_modules/@types/log4js`
+instead of `node_modules/log4js` to get types and found the type
+definitions from DefinitelyTyped. This got around the error I ran into.
 
 # Addendum: Full outline
 
