@@ -210,7 +210,7 @@ for three reasons.
 
 1. The Typescript compiler is pretty good at inferring the types already.
 2. I can easily see all the places the compiler can't infer when I turn on `noImplicityAny: true`.
-3. The scope of an individual type annotation is small and doesn't add much value compared to annotations of interfaces.
+3. The scope of an variable type annotation is small and doesn't add much value compared to annotations of parameters.
 
 I started off with `part`, the first method, and looked for all uses
 of its parameter `callback`:
@@ -342,6 +342,79 @@ $ npm install --save @types/log4js
 Once I did that, the compiler started looking in `node_modules/@types/log4js`
 instead of `node_modules/log4js` to get types and found the type
 definitions from DefinitelyTyped. This got around the error I ran into.
+
+# Add a types file
+
+In any large project, you will eventually want a separate file just
+for your types. It makes administration much easier to have all types
+in a central place. `natural` is actually a collection of small
+projects, so it doesn't really need a central file for types. But I
+did end up creating one for the Wordnet files. Here's how I did it:
+
+1. I created a new file named `wordnet_types.ts`:
+
+```ts
+export type WordnetData = {
+    synsetOffset: number;
+    lexFilenum: number;
+    pos: string;
+    ... other properties ...
+}
+... other types ...
+```
+
+2. Import these types in each module that needs them.
+
+That means the producer also needs to import the types from the types
+module. It doesn't define and export the types, just the functions
+that operate on the types. In this example, `data_file.ts` creates
+`WordnetData`:
+
+```ts
+import { WordnetData } from './wordnet_types.ts';
+class DataFile {
+    get(location: number, callback: (data: WordnetData) => void) {
+        // (get is the function that creates WordnetData objects)
+        // ... actual code follows ...
+    }
+}
+```
+
+And then `wordnet.ts` processes these objects:
+
+```ts
+import { WordnetData } from './wordnet_types';
+import DataFile = require('./data_file');
+// ... much later ...
+    lookup(word: string, callback: (results: WordnetData[]) => void) {
+        // (lookup returns a list of results for a search term)
+        // actual code follows ...
+```
+
+Notice that I didn't put `WordnetData` in `data_file`, even though
+that's the module that creates objects of that type. I put them in
+`wordnet_types` and then both `data_file` and `wordnet` import the
+types.
+
+Well, actually I *did* put them in `data_file` at first, and it was
+miserable. Because `DataFile` is the lone export from `data_file`, I
+had to nest the types inside `DataFile`. But because `DataFile` is a
+class, I couldn't nest the types there. Instead, I had to create a
+namespace, also named `DataFile`, to hold the types. The namespace
+then merged with the class, which was confusing *and* inconvenient
+because now all the types had to be referred to
+as`DataFile.WordnetData`, etc. TL;DR: put types in a separate file.
+
+## Object-oriented projects
+
+Note that if you have a very object-oriented project with no other
+projects that depend on the project, you might not need a separate
+types file. A class declares both a value and a type, so when you
+import one, you get the type along with the value. So if all your code
+is contained in classes, all your imports will look like `import {
+Class } from 'module'`, and you get access to the type `Class` at the same
+time you get access to the value `Class`.
+
 
 # Addendum: Full outline
 
