@@ -100,6 +100,34 @@ not syntactic. Surprisingly, a checker gets created every time the
 language service requests information because it tries to present an
 immutable interface. This works because the checker is very lazy.
 
+### Type Inference
+
+Type inference is basically the hairiest thing the compiler does. Here
+are some notes from my latest brush with it; I make no claim that
+these are complete, just useful.
+
+Type inference is a triple-nested loop. The outer loop checks
+overloads in order. The middle loop initially ignores
+context-sensitive parameters, then enables them one at a time. And the
+inner loop infers from parameters one at a time (skipping context-sensitive
+parameters that haven't been enabled yet).
+
+The outer two loops are in `chooseOverload`, called from inside
+`resolveCall` and the inner loop is in `inferTypeArguments`. The
+actual inference rules are in `inferFromTypes` and are pretty
+straightforward.
+
+#### Notes
+
+* The inner loop (parameters) actually always infers from normal
+parameters first. Then it infers from context-sensitive parameters,
+but only the ones that have been enabled in the middle loop.
+
+* The outer loop (overloads) throws away the inference context each
+time. But the type of parameters may be set if they are context
+sensitive. This is occasionally, unfortunately observable.
+
+
 ### JSDoc
 
 JSDoc is handled half-heartedly in the checker as well. That's largely
