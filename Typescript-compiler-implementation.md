@@ -117,6 +117,25 @@ The outer two loops are in `chooseOverload`, called from inside
 actual inference rules are in `inferFromTypes` and are pretty
 straightforward.
 
+#### Contextual Typing
+
+Contextual typing is especially tricky because it can **fix** type
+parameters. When the compiler decides that a parameter is contextually
+typed and tries to determine the contextual type, it *must* also fix the type
+parameters. That's because the contextual type needs to be the
+instantiated type. But getting the instantiated type means that the
+compiler has to know how to map the type parameter to the instantiated
+type &mdash; which is exactly the task of type inference!
+
+What's more, neither assigning a contextual type nor fixing a type
+parameter is reversible. So once the contextual type has forced us to
+fix a type parameter, we're stuck with both decisions.
+
+That's why contextual types are always processed last; the other
+parameters already have types, so type inference is not destructive.
+But type inference of contextually typed things actually causes the
+types to be added to them **permanently**.
+
 #### Notes
 
 * The inner loop (parameters) actually always infers from normal
