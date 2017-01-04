@@ -19,7 +19,7 @@ Identifier(a), a PlusToken and a LiteralExpression(1).
 
 ### Symbol
 
-The binder produces nodes in the form of a symbol table. A symbol
+The binder produces symbols in the form of a symbol table. A symbol
 tracks the declaration(s) of an identifier. The declaration is a
 **Node**. For example, in `let a = 1`, the binder creates a symbol for
 `a`, which future uses of `a` can then look up in a symbol table.
@@ -27,7 +27,43 @@ accessibility.
 
 ### Type
 
-TODO: Write this.
+The checker produces types. Lots of these types have their own caches,
+but types aren't part of some general structure. Types fall into three
+categories: primitive types, structured types and type parameters.
+(Type parameters could be called type variables.)
+
+1. Primitive types: number, string, etc.
+2. Structured types: object types, classes, unions, intersections, etc.
+3. Type parameters: um ... type variables that are parameter to
+functions or other types?
+
+Primitives don't track much of anything. They are mainly used for
+identity. If you call `getApparentType` on `numberType`, you get
+`globalNumberType`, which is an *object* type that represents
+`Number`. `Number` has methods like `toFixed` et al.
+
+Structured types are types that have or potentially could have
+properties. Classes, interfaces and type literals are pretty obvious;
+their properties are the ones declared in their respective
+declarations.
+
+Structured types like unions, intersections, index types and spread
+types represent a type that *will* have properties ... once the type
+parameters that they contain are instantiated. For example `T & {
+__brand }` will definitely have properties once `T` is provided. At
+that point the newer structured types collapse into a normal object
+type, so something like `{ ...{ a: string } }` immediately converts to
+just `{ a: string }`.
+
+If you need the currently known properties of a structured type, you
+can call `getApparentType`. `getApparentType(T & { __brand })` gives
+you just `__brand`.
+
+Note that structured types also have call/construct signatures and
+numeric/string index signatures. These 4 things are stored and checked
+separately from the properties.
+
+TODO: Discuss type parameters.
 
 ## Parser
 
@@ -136,7 +172,7 @@ parameters already have types, so type inference is not destructive.
 But type inference of contextually typed things actually causes the
 types to be added to them **permanently**.
 
-#### Notes
+#### Other Notes
 
 * The inner loop (parameters) actually always infers from normal
 parameters first. Then it infers from context-sensitive parameters,
