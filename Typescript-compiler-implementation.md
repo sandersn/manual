@@ -21,9 +21,16 @@ Identifier(a), a PlusToken and a LiteralExpression(1).
 
 The binder produces symbols in the form of a symbol table. A symbol
 tracks the declaration(s) of an identifier. The declaration is a
-**Node**. For example, in `let a = 1`, the binder creates a symbol for
-`a`, which future uses of `a` can then look up in a symbol table.
-accessibility.
+**Node**. In the example below, when the binder encounters `let a = 1`,
+it creates a symbol `a`. Then when the checker wants to find the type
+of `a * 2`, it can request the symbol for the identifier `a`,
+go to `a`'s declaration
+and look for an initial value (`1`, in this case) or a type annotation.
+
+```ts
+let a = 1
+a * 2
+```
 
 ### Type
 
@@ -206,7 +213,7 @@ assigned to:
 ```js
 var /** @param {number} x - a */f =
   /** @param {number} x - b */ function (/** c */x) {
-  };
+  }
 ```
 
 Typescript delays the work needed to stitch together this information
@@ -266,6 +273,13 @@ type notFresh = 1;
 let f = fresh; // f is mutable, so '1' widens to 'number'
 let i: notFresh = 1; // even though i is mutable, it has type '1'
 ```
+
+#### Own-enumerability in spread/rest
+
+Object spread and rest are supposed to skip non-own, non-enumerable
+members. However, the compiler doesn't track these two properties. So
+it fakes them. The most common non-own non-enumerable member is a
+class method, so those are removed.
 
 ## Transformer
 
