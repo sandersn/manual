@@ -70,6 +70,7 @@ at the same time for the type at the same time:
 
 ```ts
 declare function create<M extends { [s: string]: (this: M, ...args: any[]) => any }>(options: ViewOptions<M>): View<M>;
+```
 
 Notice that `M` is used in its own constraint! This is illegal.
 
