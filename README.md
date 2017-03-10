@@ -9,9 +9,13 @@ You're probably most interested in the notes on
 I should add matching notes on Typescript compiler design too, but I'm
 not in the middle of that yet.
 
-Manuals:
+Notes:
 
  * [Typescript compiler implementation](Typescript-compiler-implementation.md)
- * [Checker reduction plan](Checker-reduction-plan.md)
+
+Posts:
+
  * [Upgrade node library to Typescript](Upgrade-node-library-to-Typescript.md)
+ * [Why ThisType?](Why-ThisType.md)
+ * [Checker reduction plan](Checker-reduction-plan.md)
 
