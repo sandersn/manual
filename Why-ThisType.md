@@ -69,10 +69,12 @@ However, this doesn't work when we are trying to infer a type variable
 at the same time for the type at the same time:
 
 ```ts
-declare function create<M extends { [s: string]: (this: M, ...args: any[]) => any }>(options: ViewOptions<M>): View<M>;
+type MapOfThisMethods<This> = { [s: string]: (this: This, ...args: any[]) => any };
+declare function create<M extends MapOfThisMethods<M>>(options: ViewOptions<M>): View<M>;
 ```
 
-Notice that `M` is used in its own constraint! This is illegal.
+Notice that `M` is used in its own constraint! This is illegal. You
+can try to push this around but it turns out you can't get rid of it entirely.
 
 ## How
 
