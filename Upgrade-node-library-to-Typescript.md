@@ -1,4 +1,4 @@
-# Convert NLP library to Typescript
+# Converting a NLP library to Typescript
 
 Once upon a time in grad school I got a
 [real live Ph D](https://github.com/sandersn/dialect) in computational
@@ -28,7 +28,7 @@ You can follow
 on my fork of natural. That's probably too much detail, but I will
 reference specific commits from time to time.
 
-# Step 1: Compile with Typescript
+## Step 1: Compile with Typescript
 
 This step is actually pretty easy. The first thing I did was add a
 `tsconfig.json` to the root of the project:
@@ -65,7 +65,7 @@ Well, almost anything. Typescript complains about very few errors when
 compiling Javascript, but it doesn't like dead code. So [I fixed](https://github.com/sandersn/natural/commit/c1698c4de4a56136288b1b8fbac270f90e1f69fe) a few
 of those.
 
-# Step 2: Switching to gulp
+## Step 2: Switching to gulp
 
 Honestly, this is the step that I know least about. I'm not 100% sure
 I did the right things when setting up gulp, and I'm pretty sure I
@@ -133,7 +133,7 @@ Once I finally got gulp copying the compiled files and regularly
 passing tests, I deleted the original source in `lib` from git and
 added `lib` to `.gitignore`. `lib` is now just the build output directory.
 
-# Step 3: Actually upgrade to Typescript
+## Step 3: Actually upgrade to Typescript
 
 So. Finally, I was ready to start adding types to everything. Well,
 almost. Actually, the first step is to find a nice small file to
@@ -141,7 +141,7 @@ rename. I chose `analyzers/sentence_analyzer.ts` because there's only
 one file in the directory and the file itself isn't too big. Plus
 there's decent test coverage, as far as I can tell.
 
-## Fix imports/exports
+### Fix imports/exports
 
 I still wasn't to adding types yet, though. First I had to [fix the
 imports and exports](https://github.com/sandersn/natural/commit/c1f14a0e0fd3d7f350d774852f58ad5ce2c8571c). This was pretty easy because Typescript has
@@ -168,7 +168,7 @@ Using ES6 modules would be more complicated because underscore would
 need a default export (which it might) and Sentence would probably
 become a default export too, meaning that its users would need to change.
 
-## Upgrade to ESNext features
+### Upgrade to ESNext features
 
 For the first change, I decided [to turn the `Sentences` class into a real ES6
 class](https://github.com/sandersn/natural/commit/1e0cd86611e7284535e03e52c792d836bc4583f6). It changed from this:
@@ -205,7 +205,7 @@ class Sentences {
 There are lots of new features in ES6 and above, and I won't talk about
 them too much since there are lots of better places to learn about them.
 
-## Add types
+### Add types
 
 I also added types to the properties and parameters. I left the bodies alone for now,
 for three reasons.
@@ -322,7 +322,7 @@ I got the rest of those types by the same method: look at Find All
 References for each thing and look for an obvious type. Try the
 obvious type and then wait for red squigglies to help you refine the type.
 
-# Acquire types
+## Acquire types
 
 At this point I upgraded the next directory alphabetically. This was
 the brill_pos_tagger. I [started with Predicate](https://github.com/sandersn/natural/commit/bba4f36223dea1d831a84be8e8aa7b1e42970ebb) since I thought it was
@@ -345,7 +345,7 @@ Once I did that, the compiler started looking in `node_modules/@types/log4js`
 instead of `node_modules/log4js` to get types and found the type
 definitions from DefinitelyTyped. This got around the error I ran into.
 
-# Add a types file
+## Add a types file
 
 In any large project, you will eventually want a separate file just
 for your types. It makes administration much easier to have all types
@@ -407,7 +407,7 @@ then merged with the class, which was confusing *and* inconvenient
 because now all the types had to be referred to
 as`DataFile.WordnetData`, etc. TL;DR: put types in a separate file.
 
-## Object-oriented projects
+### Object-oriented projects
 
 Note that if you have a very object-oriented project with no other
 projects that depend on the project, you might not need a separate
@@ -416,24 +416,3 @@ import one, you get the type along with the value. So if all your code
 is contained in classes, all your imports will look like `import {
 Class } from 'module'`, and you get access to the type `Class` at the same
 time you get access to the value `Class`.
-
-
-# Addendum: Full outline
-
-1. Add tsconfig
-  a. Fix bare-minimum compile errors
-2. Switch to gulp
-  a. Copy things over to src/ from lib/
-  b. Add tasks to compile, then copy
-  c. Add tasks to copy other stuff
-  d. Add task to test
-3. Actually upgrade to TS
-  a. Fix imports and exports
-  a. Add types
-  b. Add a types file
-  c. Upgrade to ESNext features
-4. Acquire types
-5. Polish
-  a. Upgrade to noImplicitAny
-  b. Upgrade to strictNullChecks
-Publish your own types
