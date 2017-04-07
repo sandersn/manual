@@ -17,5 +17,6 @@ Posts:
 
  * [Upgrade node library to Typescript](Upgrade-node-library-to-Typescript.md)
  * [Why ThisType?](Why-ThisType.md)
+ * [Workarounds for Out of Memory Crashes](Workarounds-for-Out-of-Memory-Crashes.md)
  * [Checker reduction plan](Checker-reduction-plan.md)
 

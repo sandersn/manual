@@ -1,0 +1,151 @@
+# Workarounds for Out of Memory Crashes
+
+First of all, congratulations! You found a bug in the Typescript
+compiler! Please [file a bug](https://github.com/Microsoft/TypeScript/issues).
+While you're waiting for a fix, here are some workarounds, plus some
+background on what is probably going wrong.
+
+The root cause of an out-of-memory bug like this is nearly always
+control-flow analysis hitting an infinite or exponential recursion.
+There are couple of ways this can be triggered: compiling large
+Javascript libraries, or trying to infer the types of expanding or
+"auto" types.
+
+## Large Javascript
+
+When you use `"allowJs": true`, Typescript may try to compile Javascript
+packages inside `node_modules`. Large Javascript libraries still
+crash Typescript sometimes, often because of expanding types (see next
+section). In general, Typescript works harder on unannotated code to
+infer types, which of course means that large Javascript libraries
+stress it the most.
+
+### Debugging
+
+Do you have `"allowJs": true` in your tsconfig? Turn it off. Does
+compilation complete, even if it gives tons of errors? If there is no
+crash, then the culprit is the compiler getting stuck on Javascript code.
+
+### Workaround
+
+1. Install typings for libraries you use. The compiler will stop
+   looking as soon as it sees the `.d.ts` and won't even try to process
+   `.js` or `.ts` files.
+
+    This is the best solution. You should do this for your
+    dependencies anyway to get better type information. The simplest
+    thing to try is just `npm install --save-dev @types/packageName`
+    after you run `npm install --save packageName`.
+
+1. Specifically `"exclude"` node_modules or `"include"` your source
+directory.
+
+    This will help the compiler to know that it doesn't need to
+    process anything but your source code. For example, you might have
+    this tsconfig:
+
+    ```ts
+    {
+      "compilerOptions": {
+        "allowJs": true
+      },
+      "include": [ "src" ]
+    }
+    ```
+
+    Or this one:
+
+    ```ts
+    {
+      "compilerOptions": {
+        "allowJs": true
+      },
+      "exclude": [ "node_modules" ]
+    }
+    ```
+
+## Expanding types
+
+Typescript can infer the types of some declarations based on the way
+they are used:
+
+```ts
+let x
+let y = null
+let l = []
+x = 1 // x is now number
+x = 'foo' // x is now string
+y = 1 // y is now number
+l.push(1) // l is now number[]
+l.push('foo') // l is now (string | number)[]
+```
+
+This analysis is only turned on when `"noImplicitAny": true`. It
+requires the compiler to look at usages of a variable as well as its
+declaration to figure out its type. This necessarily takes more time
+and sometimes takes a *lot* more time when it hits a bug.
+
+### Debugging
+
+Do you have `"noImplicitAny": true`? Turn it off. If compilation
+completes, then control flow analysis is the culprit.
+
+### Workaround
+
+Look for un-annotated variables that are not initialised (`let x`) or
+initialised to `null`, `undefined` or `[]`. Add annotations or give a
+more useful initial value to them.
+
+```ts
+let l = []
+// instead try
+let l: number[] = [];
+// -or-
+let l = [1, 2, 3]
+```
+
+### Webpack
+
+Webpack and ts-loader have an option `"transpileOnly": true` that
+tries makes the compiler skip as much checking as possible.
+Unfortunately, some control flow analysis still happens, so it's
+possible to hit an out-of-memory crash in this mode. The workaround is
+to turn off `transpileOnly` or to give variables an initial value
+that's not `null/undefined/[]`.
+
+## Bonus: Monads
+
+I have seen a couple of out-of-memory bugs with monad libraries
+([#14746](https://github.com/Microsoft/TypeScript/issues/14746) and
+[#9052](https://github.com/Microsoft/TypeScript/issues/6496)). #14746
+has a workaround that might work for the `monet` package if you're
+using npm link. However, there is no general solution for these bugs.
+Typescript runs into architectural and semantic limits with monad
+libraries.
+
+### Architectural limits
+
+Typescript is a structural type system, and will eventually run out
+of memory if you ask it to compare two highly recursive types that
+look similar but might not be. For example, if `Maybe<T>` should be
+assignable to `IMaybe<T>`, the compiler has no shortcut: it has to check
+every parameter of every method. For example:
+
+```ts
+bind<U>(f: (x: T) => Maybe<U>) => Maybe<U>
+  // is Maybe.bind assignable to IMaybe.bind?
+bind<U>(f: (x: T) => IMaybe<U>) => IMaybe<U>
+  // well, we need to know the return type of f, Maybe<U>, is assignable to IMaybe<U>
+```
+
+Eventually the compiler will hit a cutoff, but in the meantime it will
+have accumulated an exponential number of methods it needs to check.
+
+### Semantic limits
+
+Typescript doesn't have higher-kinded types or any limits on effects.
+And it has `null` AND `undefined`. Monad implementations tend to be
+pretty object-oriented with interfaces extending interfaces and then
+classes implementing a giant conglomerate interface. This just doesn't
+match the power or simplicity of monads as typeclasses in Haskell, for
+example. Monads are not a good fit for Javascript or Typescript.
