@@ -143,6 +143,63 @@ not syntactic. Surprisingly, a checker gets created every time the
 language service requests information because it tries to present an
 immutable interface. This works because the checker is very lazy.
 
+### Control Flow
+
+The binder sets up backpointers for control flow analysis using only
+syntactic information. Then the checker uses these backpointers to
+trace control flow from usage to declaration in
+`getFlowTypeOfReference`. *Without* control flow, the type of a
+variable would always be the type it was declared with. *With* control
+flow, usage can *narrow* the type of a variable. That means that the
+checker now has two concepts: declared type and flow type (or assigned
+type, or computed type). The computed type should always be a
+narrowing of the declared type (except for instanceof).
+
+Control flow analysis works by, at each reference of a variable,
+starting with the declared type and walking back up the control flow
+chain looking at uses of the variable that might change the type. For
+example, the assignment `sn = 12` in
+
+```ts
+let sn: string | number
+sn = 12
+sn
+```
+
+Makes the flow type of `sn: number` on the last line.
+
+Control flow analysis runs on each reference to a variable. There is
+some caching but I believe it's active only within a call to
+`getFlowTypeOfReference`. So it's safe to assume each call to
+`getFlowTypeOfReference` is independent.
+
+Note: 'declared type' here is different than the type/declared type
+distinction that corresponds to static/instance type of classes, and
+really only makes sense there. `getDeclaredTypeOfSymbol` and friends
+refer to this distinction, but work on any type.
+
+#### Contextual typing
+
+Control flow can run into circularities whenever it calls back into the
+normal type-checking code. The normal checking code may end up
+requesting the control flow type, which may iterate through control
+flow nodes until it requests the type of a node, which may end up
+requesting the control flow type....
+
+For example, when you assign to an evolving array, control flow
+analysis needs to know the type of the expression being inserted into
+the array:
+
+```ts
+let x = []
+x[0] = { p: 11 }
+```
+
+However, to find the type of this particular expression, an object
+literal, the checker first asks for the contextual type. The
+contextual type is the element type of `x`. And the element type of
+`x` is ... determined by control flow analysis. Oops.
+
 ### Type Inference
 
 Type inference is basically the hairiest thing the compiler does. Here
@@ -268,10 +325,10 @@ non-cost/readonly location. Non-fresh literal types do not widen. For
 example,
 
 ```ts
-const fresh = 1;
-type notFresh = 1;
-let f = fresh; // f is mutable, so '1' widens to 'number'
-let i: notFresh = 1; // even though i is mutable, it has type '1'
+const fresh = 1
+type notFresh = 1
+let f = fresh // f is mutable, so '1' widens to 'number'
+let i: notFresh = 1 // even though i is mutable, it has type '1'
 ```
 
 #### Own-enumerability in spread/rest
@@ -283,19 +340,18 @@ class method, so those are removed.
 
 ## Transformer
 
-The transformer recently replaced the emitter. It replaces the
-*emitter*, which translated TypeScript to JavaScript. The
-*transformer* transforms TypeScript or JavaScript (various versions)
-to JavaScript (various versions) using various module systems. The
-input and output are basically both trees from the same AST type, just
-using different features.
+The transformer recently replaced the emitter, which translated
+TypeScript to JavaScript. The *transformer* transforms TypeScript or
+JavaScript (various versions) to JavaScript (various versions) using
+various module systems. The input and output are basically both trees
+from the same AST type, just using different features.
 
-The emitter is then a fairly small AST printer that can print
-any TypeScript AST.
+The emitter is now a fairly small AST printer that can print
+any TypeScript or JavaScript AST.
 
 ### Overview
 
-Since the binder sets up information for the transformer since it
+The binder sets up information for the transformer since it
 makes a complete pass over the AST anyway. Primarily, it marks
 individual nodes with their associated dialect. In the example below,
 `...x` is marked as ES2015, and `any[]` and `void` are marked as
@@ -310,8 +366,9 @@ Then each transformer runs on the AST. The Typescript transformer
 mostly just throws away annotations. The ES2015 transformation
 actually has to emit ES5 code that implements the rest parameter.
 The transforms progressively convert Typescript into older and older
-Javascript dialects. If the target is something newer than ES3, then
-the transforms just stop running.
+Javascript dialects. The transformer will run until the AST is valid
+ES3, or it will stop earlier if the target is something newer like
+ES2015. Then the emitter pretty-prints the AST.
 
 TODO: This leaves out module transformers.
 
