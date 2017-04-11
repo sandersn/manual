@@ -72,6 +72,28 @@ separately from the properties.
 
 TODO: Discuss type parameters.
 
+## Scanner
+
+The scanner reads individual characters and produces tokens. It can be
+configured to ignore spaces and to ignore comments. The default is to
+ignore both.
+
+### Comments
+
+The scanner can also produce leading and trailing comments.
+However, the definition is not quite right. Sometimes what appear to
+be leading comments are parsed as trailing comments. Unfortunately, I
+didn't take notes when I tried to fix the code, but here's what I
+remember. Sometimes `getLeadingCommentRanges` will not return what
+appears to be a leading comment. In this case you will have to call
+`getTrailingCommentRanges` as well. For example,
+`getJSDocCommentRanges` has a list of nodes that need to call both. It
+just concats the results.
+
+The core algorithm that is broken is in `iterateCommentRange`. At one
+point I fixed it, but it churned the emitter and services code so much
+that I discarded the fix.
+
 ## Parser
 
 It's a recursive descent parser. It's pretty resilient, so if you
@@ -284,7 +306,7 @@ need, except perhaps related functions like `getJSDocReturnTag` (to
 get the return type of a Javascript function) or `getJSDocTemplateTag`
 (to get the type parameters of a Javascript function).
 
-### Trivia
+### Other Topics
 
 #### Optionality
 
