@@ -72,6 +72,23 @@ separately from the properties.
 
 TODO: Discuss type parameters.
 
+## Organisation
+
+The compiler implementation is organised into phases: scanner, parser,
+binder, checker, and transformer. Each phase has more or less one file
+except the transformer, which puts each transformation in its own file
+(so, for example, the ESNext transform is in `transforms/esnext.ts`).
+
+This means that big phases have big files, especially the checker. And
+each phase is one big namespace with lots of functions inside. In
+fact, the files are so big, with so many functions, that the best way
+to work is just to search for the function name you need and then jump
+from definition to usage and back again. Unfortunately this means that
+it's difficult to get started in an area you don't yet understand
+because you'll have to guess the names of the functions that implement
+the thing you want to work on. I hope that this document will help a
+bit with that problem.
+
 ## Scanner
 
 The scanner reads individual characters and produces tokens. It can be
