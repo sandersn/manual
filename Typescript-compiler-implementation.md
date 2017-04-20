@@ -182,6 +182,69 @@ not syntactic. Surprisingly, a checker gets created every time the
 language service requests information because it tries to present an
 immutable interface. This works because the checker is very lazy.
 
+Here's a table of contents:
+
+1. Type references and instantiation
+2. Control Flow
+3. Type inference
+4. JSDoc
+5. Other topics
+
+### Type references
+
+The life cycle of a generic type is complicated. TODO: Fill in and
+correct the details here.
+
+First, when checking a generic declaration like `class A<T> { a: T }`,
+the compiler creates an InterfaceType with a property named
+typeParameters. Next, when checking a declaration that uses the
+generic type, like `let an: A<number>`, the compiler creates a
+TypeReference, which has a property named typeParameters (`[T]`) and a
+property named typeArguments (`[number]`).
+
+Up to this point, little work has been done. Nothing has caused the
+checker to go look for members of `A<number>` or their types. Just a
+couple of types have been created with only a few properties on each.
+The actual work doesn't start until some code refers to members of
+`an`.
+
+For example, when you write `return an.a`, the checker calls
+`checkPropertyAccessExpression`. This first gets the type of `an`,
+which creates the type reference `A<number>` that I just talked about.
+Next it asks for the type of property `a` on `A<number>` with `getPropertyOfType`. This kicks
+off the real work.
+
+1. `getPropertyOfType(A<number>, 'a')` calls
+2. `resolveStructuredTypeMembers(A<number>)` calls
+3. `resolveTypeReferenceMembers` calls `resolveObjectTypeMembers` which then calls
+4. `resolveObjectTypeMembers` calls
+5. `createTypeMapper` to create a function that takes `T -> number`.
+6. Then it calls `createInstantiatedSymbolTable` with the mapper for
+each symbol (and call/construct/index signatures).
+
+which calls `instantiateSymbol` on each symbol in `A<T>`. This doesn't actually
+*call* the type mapper, it just creates a Symbol with the Instantiated
+flag that has a pointer to the original symbol and the mapper.
+However, this means that `A<number>` has a `members` table of its own
+symbols now. We just haven't figured out what the types of the members are yet.
+
+Now `checkPropertyAccessExpression` can get a symbol for `A<number>.a`, it
+calls `getTypeOfSymbol` on it. This kicks off the second half of the
+work:
+
+7. `getTypeOfSymbol` calls `getTypeOfInstantiatedSymbol`, which first calls
+8. `getTypeOfSymbol` on `A<T>.a`, which checks the declaration of `a` to return `T`
+9. then `getTypeOfInstantiatedSymbol` calls
+10. `instantiateType`, which calls `mapper(T)`
+
+Which finally returns `number`, since `mapper` got created back in
+step 5 to map `T -> number`. Finally, we know that `an.a` has the type
+`number`.
+
+Notice that we don't calculate the type of any other members of
+`A<number>` (if there were any). They would have to go through steps
+(7) to (10) to produce their type.
+
 ### Control Flow
 
 The binder sets up backpointers for control flow analysis using only
@@ -284,7 +347,6 @@ but only the ones that have been enabled in the middle loop.
 * The outer loop (overloads) throws away the inference context each
 time. But the type of parameters may be set if they are context
 sensitive. This is occasionally, unfortunately observable.
-
 
 ### JSDoc
 
