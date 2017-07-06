@@ -473,6 +473,28 @@ ES2015. Then the emitter pretty-prints the AST.
 
 TODO: This leaves out module transformers.
 
+## Branded Types
+
+Two branded types exist within the compiler, `Path` and `__String`. These
+are both branded strings with different shapes and different purposes.
+
+`Path` is used to represent an absolute, normalized, canonical folder path
+or file name. If you have a `Path`, it should already be all of the above.
+You may get a path from a path-looking string via `toPath`, and a `Path` may
+be safely used anywhere a string is requested.
+
+`__String` is used to represent a string whose leading underscore have been
+escaped (if present) or a string representing an internal compiler symbol name,
+such as `"__call"`. To escape a string in this way, call `escapeLeadingUnderscores`.
+To unescape such a string, call `unescapeLeadingUnderscores`. Strings of this kind
+are used to represent symbol names and identifier text, to allow for internal symbol
+names to cohabitate the same symbol table as normal members without being in conflict.
+The brand on this type is structured such that it is castable and comparable with
+normal strings, but a normal string cannot be used in its place and it can not
+be used in place of a normal string (to prevent escaped text from leaking out via
+diagnostic messages and the like). The union member enabling this is the member intersected
+with `void`, which makes it incompatible with anything asking for a string.
+
 ## Services
 
 I don't know anything about services. And besides, this readme is for
