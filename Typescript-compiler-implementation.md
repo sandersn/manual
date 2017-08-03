@@ -315,9 +315,29 @@ inner loop infers from parameters one at a time (skipping context-sensitive
 parameters that haven't been enabled yet).
 
 The outer two loops are in `chooseOverload`, called from inside
-`resolveCall` and the inner loop is in `inferTypeArguments`. The
+`resolveCall` and the inner loop is in `inferTypeArguments`.
+
+The
 actual inference rules are in `inferFromTypes` and are pretty
-straightforward.
+straightforward. Basically, inference recurs through various types
+until it reaches a `target` that is a type parameter. Then it adds
+whatever the `source` is to the list of inferences. Each inference is
+added with a specific priority that is determined by context, such as
+`InferencePriority.ReturnType` which is used when looking at the
+return type of a function. The
+algorithm looks a bit like the assignability algorith, but is more
+permissive &mdash; for example, it often ignores problems that would
+make `isTypeRelatedTo` return false and continues looking for more inferences.
+
+After the structure of the types has been explored, the algorithm
+looks at the collected inferences and discards everything but the
+highest priority inferences. For example, if any normal inferences
+(`inference.priority === 0`) are found, like from arguments to a
+function, then inferences from the return type of that same function
+(`inference.priority === InferencePriority.ReturnType`) are completely
+ignored. To get the final inferred type, `getInferredType` calls
+`getCommonSupertype` (unless it was asked to infer a return type, in
+which case it calls `getUnionType` instead).
 
 #### Contextual Typing
 
