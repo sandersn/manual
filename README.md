@@ -20,3 +20,5 @@ Posts:
  * [Workarounds for Out of Memory Crashes](Workarounds-for-Out-of-Memory-Crashes.md)
  * [Checker reduction plan](Checker-reduction-plan.md)
 
+This site uses Google Analytics to track usage.
+
