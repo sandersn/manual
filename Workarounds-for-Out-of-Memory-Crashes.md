@@ -5,11 +5,68 @@ compiler! Please [file a bug](https://github.com/Microsoft/TypeScript/issues).
 While you're waiting for a fix, here are some workarounds, plus some
 background on what is probably going wrong.
 
-The root cause of an out-of-memory bug like this is nearly always
-control-flow analysis hitting an infinite or exponential recursion.
-There are couple of ways this can be triggered: compiling large
-Javascript libraries, or trying to infer the types of expanding or
-"auto" types.
+The root cause of an out-of-memory bug is usually one of two things:
+relating complex recursive types, or analysing control flow. Either of
+these can encounter infinite or exponential recursions. With
+control-flow analysis, it's usually a simple bug; with type relations,
+the behaviour is usually a structural limitation of the compiler.
+
+Note: I update this document periodically to reflect current bugs and
+workarounds. Right now the solutions reflect Typescript 2.4 and 2.5.
+Previous versions targetted Typescript 2.2 and 2.3; you can see
+earlier versions by checking out https://github.com/sandersn/manual.
+
+## Complex Recursive Types
+
+A good example of a complex recursive type is this example based on tsoption:
+
+```ts
+interface Some<T> {
+  ap<U, V extends Some<(value: U) => U>>(option: V): Some<U>
+  chain<U>(f: (value: T) => Some<U>): Some<U>
+  chain<U>(f: (value: T) => None<U>): None<T>
+}
+interface None<T> {
+  ap<U, V extends Some<(value: U) => U>>(option: V): None<U>
+  chain<U>(f: (value: T) => Some<U>): None<T>
+  chain<U>(f: (value: T) => None<U>): None<T>
+}
+
+type Option<T> = Some<T> | None<T>
+```
+
+Notice how `Some` and `None` return instances of each other from each
+of their methods. The instances are even unique per method, because
+each method has one or two type parameters.
+
+### noStrictGenericChecks
+
+The first workaround you should try is `"noStrictGenericChecks": true`.
+Does compilation now succeed?
+This disables additional checking that was added in Typescript
+2.4. With noStrictGenericChecks: true, compile time and memory usage
+should return to their 2.3 levels. But you miss out on the additional
+checking, so this is still just a workaround.
+
+### Avoid type aliases
+
+If you want to use the stricter generic checking in 2.4, avoid type
+aliases in favour of interfaces. When checking type relationships,
+caching and early exit is more effective for interfaces. For example:
+
+```ts
+// don't write this:
+type Some<T> = MonadSome<T> & {
+  flatMap ...
+}
+
+// instead, write this:
+interface Some<T> extends MonadSome<T> {
+  flatMap ...
+}
+```
+
+This example is once again based on tsoption.
 
 ## Large Javascript
 
@@ -112,40 +169,3 @@ Unfortunately, some control flow analysis still happens, so it's
 possible to hit an out-of-memory crash in this mode. The workaround is
 to turn off `transpileOnly` or to give variables an initial value
 that's not `null/undefined/[]`.
-
-## Bonus: Monads
-
-I have seen a couple of out-of-memory bugs with monad libraries
-([#14746](https://github.com/Microsoft/TypeScript/issues/14746) and
-[#9052](https://github.com/Microsoft/TypeScript/issues/6496)). #14746
-has a workaround that might work for the `monet` package if you're
-using npm link. However, there is no general solution for these bugs.
-Typescript runs into architectural and semantic limits with monad
-libraries.
-
-### Architectural limits
-
-Typescript is a structural type system, and will eventually run out
-of memory if you ask it to compare two highly recursive types that
-look similar but might not be. For example, if `Maybe<T>` should be
-assignable to `IMaybe<T>`, the compiler has no shortcut: it has to check
-every parameter of every method. For example:
-
-```ts
-bind<U>(f: (x: T) => Maybe<U>) => Maybe<U>
-  // is Maybe.bind assignable to IMaybe.bind?
-bind<U>(f: (x: T) => IMaybe<U>) => IMaybe<U>
-  // well, we need to know the return type of f, Maybe<U>, is assignable to IMaybe<U>
-```
-
-Eventually the compiler will hit a cutoff, but in the meantime it will
-have accumulated an exponential number of methods it needs to check.
-
-### Semantic limits
-
-Typescript doesn't have higher-kinded types or any limits on effects.
-And it has `null` AND `undefined`. Monad implementations tend to be
-pretty object-oriented with interfaces extending interfaces and then
-classes implementing a giant conglomerate interface. This just doesn't
-match the power or simplicity of monads as typeclasses in Haskell, for
-example. Monads are not a good fit for Javascript or Typescript.
