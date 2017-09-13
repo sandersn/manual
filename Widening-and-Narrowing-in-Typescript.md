@@ -124,9 +124,36 @@ doom.e = 2 // Mutable objects! We're doomed!
 // -gasp- Dooooooooooooooooooooooooooooooooo-
 ```
 
+### What literal types widen?
+
+* Number literal types like `1` widen to `number`.
+* String literal types like `'hi'` widen to `string`.
+* Boolean literal types like `true` widen to `boolean`.
+* Enum members widen to their containing enum.
+
+An example of the last is:
+
+```ts
+enum State {
+  Start,
+  Expression,
+  Term,
+  End
+}
+const start = State.Start;
+let state = start;
+let ch = '';
+while (ch = nextChar()) {
+  switch (state) {
+    // ... imagine your favourite tokeniser here
+  }
+}
+```
+
 ### How does literal widening work?
 
-TODO: This is just notes right now.
+TODO: This is just notes right now. It would be fun to have some
+implementation details, but perhaps in another document.
 
 The core pieces of literal widening are `getBaseTypeOfLiteralType`, `getWidenedLiteralType` and
 `getRegularTypeOfLiteralType`. These three functions are fairly simple:
@@ -170,4 +197,26 @@ type, which is one that will not widen to its primitive base type in `getWidened
   - checking >= and the other relational operators, as well as &&, so allowed comparisons aren't *too* strict
   - checking case clauses, for similar reasons
 
+## Narrowing
 
+Narrowing is essentially the removal of types from a union. Like the
+rest of the operations so far, it *sounds* like it should be related
+to widening, but it's not. Narrowing happens whenever you change the
+declared type based on control flow information:
+TODO: Define 'declared type' vs 'computed type'.
+
+```ts
+// @strict: true
+type Thing = { name: 'one' | 'two' };
+function process(origin: Thing, extra?: Thing | undefined): void {
+  preprocess(origin, extra);
+  if (extra) {
+    console.log(extra.name);
+    if (extra.name === 'one') {
+      // ...
+```
+
+When `process` starts, `extra`'s type includes `Thing` and
+`undefined`. And on the first line, `preprocess(origin, extra)`, its
+type is the same. However, inside the `if (extra)` block, `extra`'s
+type is just `Thing`. Narrowing has removed `undefined` from its type.
