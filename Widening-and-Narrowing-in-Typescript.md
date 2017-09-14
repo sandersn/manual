@@ -152,8 +152,69 @@ while (ch = nextChar()) {
 
 ### How does literal widening work?
 
-TODO: This is just notes right now. It would be fun to have some
-implementation details, but perhaps in another document.
+## Narrowing
+
+Narrowing is essentially the removal of types from a union. It's
+happening all the time as you write code, especially if you use
+`--strictNullChecks`. To understand narrowing, you first need to
+understand the difference between "declared type" and "computed type".
+
+The declared type of a variable is the one it's declared with. For
+`let x: number | undefined`, that's `number | undefined`. The computed
+type of a variable is the type of the variable as it's used in
+context. Here's an example:
+
+```ts
+// @strict: true
+type Thing = { name: 'one' | 'two' };
+function process(origin: Thing, extra?: Thing | undefined): void {
+  preprocess(origin, extra);
+  if (extra) {
+    console.log(extra.name);
+    if (extra.name === 'one') {
+      // ...
+```
+
+`extra`'s declared type is `Thing | undefined`, since it's an optional
+parameter. However, its computed type varies based on context. On the
+first line, in `preprocess(origin, extra)`, its computed type is still
+`Thing | undefined`. However, inside the `if (extra)` block, `extra`'s
+computed type is now just `Thing` because it can't possibly be
+`undefined` due to the `if (extra)` check. Narrowing has removed
+`undefined` from its type.
+
+Similarly, the declared type of `extra.name` is `'one' | 'two'`, but
+inside the true branch of `if (extra.name === 'one')`, its computed
+type is just `'one'`.
+
+Narrowing mostly commonly removes all but one type from a union, but
+doesn't necessarily need to:
+
+```ts
+type Type = Anonymous | Class | Interface
+function f(thing: string | number | boolean | object) {
+  if (typeof thing === 'string' || typeof thing === 'number') {
+    return lookup[thing];
+  }
+  else if (typeof thing === 'boolean' && thing) {
+    return globalCachedThing;
+  }
+  else {
+    return thing;
+  }
+}
+```
+
+Here, in the first if-block, `thing` narrows to `string | number` because
+the check allows it to be either string or number.
+
+# Appendix: Implementation
+
+## Widening
+
+`getWidenedType` is called from X Y Z locations
+
+## Literal Widening
 
 The core pieces of literal widening are `getBaseTypeOfLiteralType`, `getWidenedLiteralType` and
 `getRegularTypeOfLiteralType`. These three functions are fairly simple:
@@ -199,24 +260,6 @@ type, which is one that will not widen to its primitive base type in `getWidened
 
 ## Narrowing
 
-Narrowing is essentially the removal of types from a union. Like the
-rest of the operations so far, it *sounds* like it should be related
-to widening, but it's not. Narrowing happens whenever you change the
-declared type based on control flow information:
-TODO: Define 'declared type' vs 'computed type'.
+## Apparent Type
 
-```ts
-// @strict: true
-type Thing = { name: 'one' | 'two' };
-function process(origin: Thing, extra?: Thing | undefined): void {
-  preprocess(origin, extra);
-  if (extra) {
-    console.log(extra.name);
-    if (extra.name === 'one') {
-      // ...
-```
-
-When `process` starts, `extra`'s type includes `Thing` and
-`undefined`. And on the first line, `preprocess(origin, extra)`, its
-type is the same. However, inside the `if (extra)` block, `extra`'s
-type is just `Thing`. Narrowing has removed `undefined` from its type.
+`getApparentType`
