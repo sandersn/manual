@@ -377,4 +377,11 @@ type, which is one that will not widen to its primitive base type in `getWidened
 
 ## Apparent Type
 
-`getApparentType`
+`getApparentType` provides the apparent type of a type. Besides the
+obvious mapping from `number` to `Number`, `string` to `String`, etc,
+it also gets the base constraint of a type. For type parameters, this
+is straightforward: if you write `T extends { x: number }`, then the
+base constraint is `{ x: number }`. For unions and intersections, the
+base constraint is the union/intersection of base constraints of their
+types. This makes sure that the apparent type of `T & { y: string }`
+is `{ x: number } & { y: string }`.
