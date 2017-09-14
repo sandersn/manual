@@ -214,7 +214,7 @@ applies to certain `instanceof` checks and type predicates.
 
 Here's a use of `instanceof` that follows the normal narrowing rules:
 
-```
+```ts
 class C { c: any }
 function f(x: C | string) {
   if (x instanceof C) {
@@ -229,7 +229,7 @@ function f(x: C | string) {
 So far this follows the normal narrowing rules. But `instanceof`
 applies to subclasses too:
 
-```
+```ts
 class D extends C { d: any }
 function f(x: C) {
   if (x instanceof D) {
