@@ -15,7 +15,7 @@ The concepts covered in this document are as follows:
 1. Widening: treat an internal type as a normal one.
 2. Literal widening: treat a literal type as a primitive one.
 3. Narrowing: remove constituents from a union type.
-4. Type predicate narrowing: treat a type as a subclass.
+4. Instanceof narrowing: treat a type as a subclass.
 5. Apparent type: treat a non-object type as an object type.
 
 ## Widening
@@ -150,8 +150,6 @@ while (ch = nextChar()) {
 }
 ```
 
-### How does literal widening work?
-
 ## Narrowing
 
 Narrowing is essentially the removal of types from a union. It's
@@ -208,7 +206,122 @@ function f(thing: string | number | boolean | object) {
 Here, in the first if-block, `thing` narrows to `string | number` because
 the check allows it to be either string or number.
 
+## Instanceof Narrowing
+
+Instanceof narrowing looks similar to normal narrowing, and
+behaves similarly, but its rules are somewhat different. It only
+applies to certain `instanceof` checks and type predicates.
+
+Here's a use of `instanceof` that follows the normal narrowing rules:
+
+```
+class C { c: any }
+function f(x: C | string) {
+  if (x instanceof C) {
+    // x is C here
+  }
+  else {
+    // x is string here
+  }
+}
+```
+
+So far this follows the normal narrowing rules. But `instanceof`
+applies to subclasses too:
+
+```
+class D extends C { d: any }
+function f(x: C) {
+  if (x instanceof D) {
+    // x is D here
+  }
+  else {
+    // x is still just C here
+  }
+}
+```
+
+Unlike narrowing, `instanceof` narrowing doesn't remove any types to
+get `x`'s computed type. It just notices that `D` is a subclass of `C`
+and changes the computed type to `D` inside the `if (x instanceof D)`
+block. In the `else` block `x` is still `C`.
+
+If you mess up the class relationship, the compiler does its best
+to make sense of things:
+
+```ts
+class E { e: any } // doesn't extend C!
+function f(x: C) {
+  if (x instanceof E) {
+    // x is C & E here
+  }
+  else {
+    // x is still just C here
+  }
+}
+```
+
+The compiler thinks that something of type `C` can't also be
+`instanceof E`, but just in case, it sets the computed type of `x` to
+`C & E`, so that you can use the properties of `E` in the block
+&mdash; just be aware that the block will probably never execute!
+
+### Type predicates
+
+Type predicates follow the same rules as `instanceof` when narrowing,
+and are just as subject to misuse. So this example is equivalent to
+previous wonky one:
+
+```ts
+function isE(e: any): e is E {
+  return e.e;
+}
+function f(x: C) {
+  if (isE(x)) {
+    // x is C & E here
+  }
+  else {
+    // nope, still just C
+  }
+}
+```
+
+## Apparent Type
+
+In some situations you need to get the properties on a variable, even
+when it technically doesn't have properties. One example is primitives:
+
+```ts
+let n = 12
+let s = n.toFixed()
+```
+
+`12` doesn't technically have properties; `Number` does. In order to
+map `number` to `Number`, we define `Number` as the *apparent type* of
+`number`. Whenever the compiler needs to get properties of some type,
+it asks for the apparent type of that type first. This applies to
+other non-object types like type parameters:
+
+```ts
+interface Node {
+  parent: Node;
+  pos: number;
+  kind: number;
+}
+function setParent<T extends Node>(node: T, parent: Node): T {
+  node.parent = parent;
+  return node;
+}
+```
+
+`T` is a type parameter, which is just a placeholder. But its
+constraint is `Node`, so when the compiler checks `node.parent`, it
+gets the apparent type of `T`, which is `Node`. Then it sees that
+`Node` has a `parent` property.
+
 # Appendix: Implementation
+
+TODO: This is not done yet.
 
 ## Widening
 
@@ -259,6 +372,8 @@ type, which is one that will not widen to its primitive base type in `getWidened
   - checking case clauses, for similar reasons
 
 ## Narrowing
+
+## Instanceof narrowing
 
 ## Apparent Type
 
