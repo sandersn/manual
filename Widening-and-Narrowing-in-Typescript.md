@@ -1,7 +1,7 @@
 # Widening and Narrowing in Typescript
 
 Typescript has a number of related concepts in which a type gets
-treated temporarily as a similar type. Some of these concepts are
+treated temporarily as a similar type. Most of these concepts are
 internal-only. None of them are documented very well. For the internal
 concepts, we expect nobody needs to know about them to use the
 language. For the external concepts, we hope that they work well
@@ -270,7 +270,7 @@ The compiler thinks that something of type `C` can't also be
 
 Type predicates follow the same rules as `instanceof` when narrowing,
 and are just as subject to misuse. So this example is equivalent to
-previous wonky one:
+the previous wonky one:
 
 ```ts
 function isE(e: any): e is E {
@@ -318,70 +318,3 @@ function setParent<T extends Node>(node: T, parent: Node): T {
 constraint is `Node`, so when the compiler checks `node.parent`, it
 gets the apparent type of `T`, which is `Node`. Then it sees that
 `Node` has a `parent` property.
-
-# Appendix: Implementation
-
-TODO: This is not done yet.
-
-## Widening
-
-`getWidenedType` is called from X Y Z locations
-
-## Literal Widening
-
-The core pieces of literal widening are `getBaseTypeOfLiteralType`, `getWidenedLiteralType` and
-`getRegularTypeOfLiteralType`. These three functions are fairly simple:
-
-`getBaseTypeOfLiteralType` converts string literal types to `string`,
-number literal types to `number`, boolean literal types to `boolean`,
-and literal enum members (which are usable as types) to the base enum
-type. It also recurs through unions. `getWidenedLiteralType` is the
-same code, except that it only widens if the type is marked with
-`TypeFlags.FreshLiteral`.
-
-`getRegularTypeOfLiteralType` gets the 'regular' version of a literal
-type, which is one that will not widen to its primitive base type in `getWidenedLiteralType`.
-
-* 'fresh' types are the ones that widen upon assignment to mutability)
-* `getFreshTypeOfLiteralType` is called on numeric and string
-  literals (plus unary prefix, but whatever)
-* `getRegularTypeOfLiteralType` is called on type nodes, case clauses
-* It's also called internally wherever we need type identity, which is
-  a lot of places. This choice is somewhat arbitrary, except that
-  `getRegularTypeOfLiteralType` is already called more places, so
-  might as well keep fresh-type calls few.
-* `getRegularTypeOfExpression` delegates to it. But it's only called
-  for type-identity purposes too.
-* `isRelatedTo` manually grabs the regularType of a fresh literal type
-* `getWidenedLiteralType` is the one widening fresh literal types, and is called from...
-  - JSX for ad-hoc reasons
-  - type inference for complex reasons
-  - `getContextuallyTypedParameterType`, during IIFE typings, because it's writable I guess?
-  - `getReturnTypeFromBody`, when there is a contextual return type and the return type is a unit type
-  - initializers that aren't const/readonly or a type assertion
-* This is contrast to `getBaseTypeOfLiteralType`, which *always* widens and is called from:
-  - doLiteralTypesHaveSameBaseType (`literalTypesWithSameBaseType`)
-  - type inference, I think to find better inferences
-  - `addEvolvingArrayElementType`, because it's by definition mutable
-  - during flow analysis of compound assignments (like *= and +=)
-  - and evolving assignments
-  - in checkIdentifier, if the identifier is being assigned to
-  - and in checkProperyAccessExpression
-  - in checkAssertionWorker, maybe because the source is going to be cast to something else anyway?
-  - checking >= and the other relational operators, as well as &&, so allowed comparisons aren't *too* strict
-  - checking case clauses, for similar reasons
-
-## Narrowing
-
-## Instanceof narrowing
-
-## Apparent Type
-
-`getApparentType` provides the apparent type of a type. Besides the
-obvious mapping from `number` to `Number`, `string` to `String`, etc,
-it also gets the base constraint of a type. For type parameters, this
-is straightforward: if you write `T extends { x: number }`, then the
-base constraint is `{ x: number }`. For unions and intersections, the
-base constraint is the union/intersection of base constraints of their
-types. This makes sure that the apparent type of `T & { y: string }`
-is `{ x: number } & { y: string }`.
