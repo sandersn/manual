@@ -38,10 +38,10 @@ function isAssignableTo(source: Type, target: Type): boolean {
 }
 ```
 
-For brevity's sake, I'll often use the operator &xrArr; to represent
+For brevity's sake, I'll often use the operator ⟹ to represent
 `isAssignableTo`, like this:
 
-number &xrArr; number.
+`number ⟹ number`.
 
 In fact, one common bug in the compiler is to use equality where
 assignability is the correct check. This is a bug because Typescript
@@ -123,8 +123,8 @@ target = source;
 Except signatures check for correct parameter count instead of missing
 properties, and iterate over parameters instead of properties. In
 addition, parameters compare contravariantly, which is a fancy way to
-say that the direction of source and target flips, so that string
-&xrArr; unknown but (a: unknown) => void &xrArr; (a: string) => void. That's
+say that the direction of source and target flips, so that `string
+⟹ unknown` but `(a: unknown) => void ⟹ (a: string) => void`. That's
 because when you assign a callback variable, you're not actually
 assigning the *parameters* directly. You're assigning a callable thing
 to another callable thing. For example:
