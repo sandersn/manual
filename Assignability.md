@@ -38,10 +38,10 @@ function isAssignableTo(source: Type, target: Type): boolean {
 }
 ```
 
-For brevity's sake, I'll often use the operator &rArr; to represent
+For brevity's sake, I'll often use the operator &xrArr; to represent
 `isAssignableTo`, like this:
 
-`number` &xrArr; `number`.
+number &xrArr; number.
 
 In fact, one common bug in the compiler is to use equality where
 assignability is the correct check. This is a bug because Typescript
@@ -123,16 +123,22 @@ target = source;
 Except signatures check for correct parameter count instead of missing
 properties, and iterate over parameters instead of properties. In
 addition, parameters compare contravariantly, which is a fancy way to
-say that the direction of source and target flips, so that `string`
-&xrArr; `unknown` but `(a: unknown) => void` &xrArr; `(a: string) => void`. That's
+say that the direction of source and target flips, so that string
+&xrArr; unknown but (a: unknown) => void &xrArr; (a: string) => void. That's
 because when you assign a callback variable, you're not actually
 assigning the *parameters* directly. You're assigning a callable thing
-to another callable thing. That is, `string` can be assigned to
-`unknown` because `unknown` can be literally anything. But you can't
-assign `source; (a: string) => void` to `target: (a: unknown) => void`
-because target's type says that target accepts anything. So
-`target(1)` is legal. But `source(1)` is *not* legal, so you can't
-assign source to target.
+to another callable thing. For example:
+
+```ts
+var source: string;
+var target: unknown;
+target = source; // fine, target can be anything, including a string
+
+var source: (a: string) => void;
+var target: (a: unknown) => void;
+target = source;
+target(1); // oops, you can't pass numbers to source
+```
 
 TODO: Discuss how we don't need subtype relations (including
 implements) because of structural comparison.
