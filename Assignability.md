@@ -62,11 +62,11 @@ and algebraic types so I’ll not cover them here.)
 Structural assignability is an feature of Typescript that most
 languages do not have. But it's expensive: it's actually the last
 assignability check because it's so slow and painstaking. Simple
-equality is actually the first check! Structural assignability
+equality is the first check! Structural assignability
 functions as a fallback when all other kinds of assignability have
 failed to return true.
 
-Structural assignability applies to anything that actually
+Structural assignability applies to anything that has
 properties and signatures: classes, interfaces, and object literal
 types, basically. Intersection types also check structural
 assignability if no other comparison works.
@@ -140,10 +140,12 @@ target = source;
 target(1); // oops, you can't pass numbers to source
 ```
 
+## Inheritance
+
 TODO: Discuss how we don't need subtype relations (including
 implements) because of structural comparison.
 TODO: Probably don't discuss overloads.
 
 TODO: In the hacks section discuss the Maybe cutoff. Also point out
-that multiple variants exist. And discuss how type ID works with
-generics.
+that multiple variants exist: specifically, discuss how type ID works with
+generics in the principle non-id variant.
