@@ -1,4 +1,4 @@
-## Table of Contents
+# Assignability
 
 1. Basics
 2. Structural assignability
@@ -57,7 +57,7 @@ examples of three broad categories which we’ll cover next:
 (Note that generics are a complex topic that covers both structural
 and algebraic types so I’ll not cover them here.)
 
-# Structural Assignability
+## Structural Assignability
 
 Structural assignability is an feature of Typescript that most
 languages do not have. But it's expensive: it's actually the last
@@ -140,7 +140,84 @@ target = source;
 target(1); // oops, you can't pass numbers to source
 ```
 
-## Inheritance
+### Inheritance
+
+Once you have structural assignability, you don't actually need an
+inheritance relation. You just check that derived classes are
+assignable to their base classe. Same thing goes for implements. In
+other words, this:
+
+```ts
+class Base {
+  constructor(public b: number) {
+  }
+}
+class Derived extends Base {
+  b = 12
+  constructor(public d: string) {
+    super(this.b);
+  }
+}
+```
+
+Is treated just like this:
+
+```ts
+var derived: { b: number, d: string };
+var base: { b: number };
+base = derived;
+```
+
+Of course, the check caches its results so that once you know that a
+`Derived` is assignable to a `Base`, you don't have to run the
+expensive check again. More on that in the Tricks and Hacks section.
+
+TODO: Maybe point out that private properties are special-cased to
+behave nominally?
+
+## Algebraic Assignability
+
+Types with algebraic type operators can be checked algebraically.
+Sometimes this check is merely faster than a structural check,
+but if you involve type variables, algebraic checks can succeed where
+a structural check would fail. For example:
+
+```
+function f<T>(source: T | never, target: T) {
+   target = source;
+}
+```
+
+The checker knows that `never` does not change a union it's part of,
+so it can eliminate it and recur with a smaller type:
+
+> `T | never ⟹ T`  
+> `T ⟹ T`
+
+
+And since `T===T`, `T | never ⟹ T`.
+
+Other kinds of relations are pretty obvious. For example, when a union
+is the target, the source is assignable when it's assignable to any
+element of the union:
+
+> `B ⟹ A | B | C`  
+> `B ⟹ B`
+
+But when a union is the source, *every* element needs to be assignable
+to the target. So `A | B | C ⟹ B` isn't true in general, just in
+cases where the target is supertype of all elements of the unions:
+`'x' | 'y' | 'z' ⟹ string`.
+
+More complicated relations exist as well. For example, intersection
+distributes across union:
+
+> `A & (B | C) ⟹ (A & B) | (A & C)`  
+> `(A & B) | (A & C) ⟹ (A & B) | (A & C)`  
+
+union, intersection
+keyof, lookup, mapped
+conditional
 
 TODO: Discuss how we don't need subtype relations (including
 implements) because of structural comparison.
