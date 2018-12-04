@@ -26,7 +26,7 @@ f(false);
 The first assignment is fine because both `x` and `y` have the type
 `number`. The second assignability check is on the return
 statement, which checks that string.length's type, `string`, is assignable to
-`number`. The third check is that the type of false, `boolean` is assignable to
+`number`. The third check is that the type of false, `boolean`, is assignable to
 `string`. Which it isn’t.
 
 For a simple type system consisting only of the primitive types,
@@ -52,7 +52,7 @@ examples of three broad categories which we’ll cover next:
 
 * Structural types
 * Types created using algebraic operators
-* Special-cases types (literals, enums and tuples)
+* Special-cased types (literals, enums and tuples)
 
 (Note that generics are a complex topic that covers both structural
 and algebraic types so I’ll not cover them here.)
@@ -144,7 +144,7 @@ target(1); // oops, you can't pass numbers to source
 
 Once you have structural assignability, you don't actually need an
 inheritance relation. You just check that derived classes are
-assignable to their base classe. Same thing goes for implements. In
+assignable to their base classes. Same thing goes for implements. In
 other words, this:
 
 ```ts
@@ -215,13 +215,59 @@ distributes across union:
 > `A & (B | C) ⟹ (A & B) | (A & C)`  
 > `(A & B) | (A & C) ⟹ (A & B) | (A & C)`  
 
-union, intersection
-keyof, lookup, mapped
-conditional
+Mapped types, index access types, and keyof types also interact in a
+number of ways. First, the keyof S is assignable to the
+keyof T if T is assignable to S:
 
-TODO: Discuss how we don't need subtype relations (including
-implements) because of structural comparison.
-TODO: Probably don't discuss overloads.
+> `keyof S ⟹ keyof T`  
+> `T ⟹ S`
+
+You can see why the direction flips with an example:
+
+> `S = { a, b, c }`  
+> `T = { a, b }`  
+
+Here, the source has an extra property, so it's OK to assign it to a
+target with fewer properties. But for the keys, you have to assign the
+source's `"a" | "b" | "c"` to the target's `"a" | "b"` because the
+smaller union is missing `"c"`.
+
+For mapped types, any type T is assignable to the identity mapping:
+
+> `T ==> { [P in X]: T[P] }`
+
+This follows from the definition of mapped types. Note that the
+reverse is not true because mapping a type loses some information.
+
+Finally, some complex relations involve all three kinds of type. For
+example, if you have some key type `K` and a rewrite type `X`, a
+mapped type `{ [P in K]: X }` is assignable to `T` if `K` is
+assignable to the keys of `T` and `X` is assignable to all the
+properties of `T`:
+
+> `{ [P in K]: X } ⟹ T`
+> `keyof T ⟹ Q` and `X ⟹ T[K]`  
+
+This is true in the other direction too:
+
+> `T ⟹ { [P in K]: X }`  
+> `K ⟹ keyof T` and `T[K] ⟹ X`
+
+You can see this is true if you try it with some example types:
+
+> `T = { a: C | D, b: C | D, c: C | D }`  
+> `K = "a" | "b"`  
+> `X = C | D`  
+>  
+> `{ a: C | D, b: C | D, c: C | D } ⟹ { [P in "a" | "b"]: C | D }`  
+> `{ a: C | D, b: C | D, c: C | D } ⟹ { "a": C | D, "b": C | D }`
+
+## Hacks
+
+1. Unit types
+2. Excess properties
+3. Weak types
+4. Maybe cutoff
 
 TODO: In the hacks section discuss the Maybe cutoff. Also point out
 that multiple variants exist: specifically, discuss how type ID works with
