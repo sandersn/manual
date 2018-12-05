@@ -262,15 +262,14 @@ You can see this is true if you try it with some example types:
 > `{ a: C | D, b: C | D, c: C | D } ⟹ { [P in "a" | "b"]: C | D }`  
 > `{ a: C | D, b: C | D, c: C | D } ⟹ { "a": C | D, "b": C | D }`
 
-## Hacks
+## Hacks and Tricks
 
 In between simple equality and structural comparison, Typescript has
 quite a few special cases to handle specific types quickly.
 
 1. Unit and primitive types
-2. Excess properties
-3. Weak types
-4. Maybe cutoff
+2. Excess properties and weak types
+3. Recursion cutoffs
 
 ### Simple Types
 
@@ -305,15 +304,148 @@ some object type, then the compiler will have to use structural
 comparison, and it will *first* have to get all the string's methods
 and properties.
 
-### Excess property checks
+### Excess property and weak type checks
 
 The excess property check and weak type check run right after the
 simple type check. The reason they run so early is that, although they
 are expensive, if they end up failing an assignability check early,
 they save time compared to doing a full structural comparison.
 
-TODO: Discuss how they actually work OK.
+The excess property check applies only if the source is a "fresh"
+object type. Its only purpose is to fail otherwise-legal
+assignments. With structural assignability, it's fine to have extra
+properties, so `{ a, b } ⟹ { a }`. However, when you assign an object
+literal to a variable with a type like `{ a }`, it's very unlikely
+that you want to include properties besides `a`. So the excess
+property check disallows this assignment.
 
-TODO: In the hacks section discuss the Maybe cutoff. Also point out
-that multiple variants exist: specifically, discuss how type ID works with
-generics in the principle non-id variant.
+The weak type check applies only if the source contains nothing but
+optional properties. With structural assignability, *any* type is
+assignable to a weak type. All these assignments are legal:
+
+> `{ a } ⟹ { a?, b? }`
+> `{ a, b, e } ⟹ { a?, b? }`
+> `{ c, d } ⟹ { a?, b? }`
+> `{ } ⟹ { a?, b? }`
+
+However, only the first two make any kind of sense, so the weak type
+check requires that the target share at least one property with a weak
+source.
+
+### Structural cutoffs
+
+Structural assignability has problems with recursion. Specifically, if
+you write a class like this:
+
+```ts
+declare class Box<T> {
+  t: T
+  update(other: Box<T>): void
+}
+var source = new Box<string>();
+var target = new Box<unknown>();
+target = source;
+```
+
+To find out whether target is assignable to source:
+
+> `Box<string> ⟹ Box<unknown>`  
+> `{ t: string, update(other: Box<string>): void } ⟹ { t: unknown, update(other: Box<unknown>): void }`  
+
+Now we have to show that the types of `t` and `update` are assignable.
+`t` is easy enough:
+
+> `string ⟹ unknown`
+
+But `update` poses a problem:
+
+> `(other: Box<string>) => void ⟹ (other: Box<unknown>) => void`  
+> `Box<string> ⟹ Box<unknown>`  
+> `{ t: string, update(other: Box<string>): void } ⟹ { t: unknown, update(other: Box<unknown>): void }`  
+
+Oh no. Looks like we are going to loop forever!
+
+Typescript actually has two solutions for this problem. The most
+common one is to notice that `Box === Box` and to follow up by
+comparing the argument(s) of `Box`:
+
+> `Box<string> ⟹ Box<unknown>`  
+> `string ⟹ unknown`  
+
+This works by assuming that most of the time people write nominal
+code, even in a structural type system. But what if somebody shows up
+with a similar class that they updated to work with `Box`?
+
+```ts
+declare class Ref<T> {
+  private item: T
+  deref(): T
+  // for Box compatibility:
+  readonly t: T
+  update(other: Ref<T>): void
+}
+```
+
+Now, if the source is `Ref<string>` and target is `Box<unknown>`, we
+have to compare the whole thing structurally. Everything goes well
+until we try to check `other` again:
+
+> `Ref<string> ⟹ Box<unknown>`  
+> ...  
+> `(other: Ref<string>) => void ⟹ (other: Box<unknown>) => void`  
+> `Ref<string> ⟹ Box<unknown>`  
+
+Even though `Ref !== Box`, we can use the fact that this is the second
+occurrence of `Ref<string> ⟹ Box<unknown>` to infer that the second
+check will not provide any new information. However, instead of
+returning true, structural assignability actually uses a ternary to
+return Maybe. A Maybe result becomes true if all non-Maybe results are
+true. Otherwise it stays Maybe.
+
+This causes `Ref<string> ⟹ Box<unknown>` to succeed because `Ref.t` is
+in fact assignable to `Box.t` and `item` and `deref` don't matter for
+assignability.
+
+However, you can *still* write types that these two checks don't
+catch. Specifically:
+
+```ts
+declare class Functor<T> {
+  fmap<U>(f: (t: T) => U): Functor<U>;
+}
+declare class Mappable<T> {
+  fmap<U>(f: (t: T) => U): Mappable<U>;
+}
+```
+
+In this case, for `Functor<string> ⟹ Mappable<unknown>`, you end up
+having to check `Functor<U> ⟹ Mappable<U>` while checking the return
+type of `fmap`. Once you get started checking
+`Functor<U> ⟹ Mappable<U>`, you're stuck: every recursive check of
+`fmap` creates a fresh `U`, so you have to check
+`Functor<U> ⟹ Mappable<U>` for this fresh `U`.
+
+To prevent this, structural assignability has an arbitrary 5-deep
+cutoff for comparing identical pairs of types, even if their arguments
+are different. That is, if we compare the pair (Functor, Mappable) 5
+times, that particular comparison will return Maybe.
+
+## Summary
+
+In order to present concepts in order of least to most complex, I
+presented the parts of the assignability check in a different order
+than they actually occur. The actual algorithm proceeds as follows:
+
+1. If source === target, return true.
+2. If source and target are simple and are assignable, return true.
+3. If source is an object type and the target has excess properties, return false.
+4. If source type is weak and the target shares no properties, return false.
+5. If the source or target types are algebraic, simplify the types if possible and recur.
+6. If the source is structurally assignable to the target, return true.
+
+As we saw in the previous section, step 6 might return "Maybe", which
+counts as true.
+
+I also skipped quite a few small details. For the actual code, look
+at `checkTypeRelatedTo` in src/compiler/checker.ts in the TypeScript
+repository on github.
