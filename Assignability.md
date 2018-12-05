@@ -264,10 +264,55 @@ You can see this is true if you try it with some example types:
 
 ## Hacks
 
-1. Unit types
+In between simple equality and structural comparison, Typescript has
+quite a few special cases to handle specific types quickly.
+
+1. Unit and primitive types
 2. Excess properties
 3. Weak types
 4. Maybe cutoff
+
+### Simple Types
+
+Primitive types and unit types are all compared with a long list of
+specific rules. The comparisons are quite fast because all of these
+types are marked with a bit flag. A few of the rules are odd because
+of historical restrictions. For example, any number is assignable to a
+numeric enum, but this is not true for string enums. Only strings that
+are known to be part of a string enum are assignable to it.
+
+Here are the types that are compared with simple rules:
+
+* string
+* number
+* boolean
+* symbol
+* object
+* any
+* void
+* null
+* undefined
+* never
+* string enums
+* number enums
+* string literals
+* number literals
+* boolean literals
+
+Note that both the source and target have to be simple for a simple
+comparison to succeed. If the source is a string and the target is
+some object type, then the compiler will have to use structural
+comparison, and it will *first* have to get all the string's methods
+and properties.
+
+### Excess property checks
+
+The excess property check and weak type check run right after the
+simple type check. The reason they run so early is that, although they
+are expensive, if they end up failing an assignability check early,
+they save time compared to doing a full structural comparison.
+
+TODO: Discuss how they actually work OK.
 
 TODO: In the hacks section discuss the Maybe cutoff. Also point out
 that multiple variants exist: specifically, discuss how type ID works with
