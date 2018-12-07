@@ -91,11 +91,11 @@ to start fixing errors.
 
 You can
 
-1. Fix up the type annotations that refer to estree types. TODO: LINK
-2. Add shelljs' missing types. TODO: LINK
-2. Add missing typings for your dependencies. TODO: LINK
-3. Add missing typings in your code. TODO: LINK
-3. Fix errors in existing types. TODO: LINK
+1. Add shelljs' missing types. TODO: LINK
+2. Fix up the type annotations that refer to estree types. TODO: LINK
+3. Add missing typings for your dependencies. TODO: LINK
+4. Add missing typings in your code. TODO: LINK
+5. Fix errors in existing types. TODO: LINK
 
 ## Missing types in dependencies
 
@@ -155,12 +155,45 @@ If there are lint problems, the CI run on Travis will catch them.
 For more detail on writing definitions for Definitely Typed, [see the
 long explanation](?????).
 
+## Fix up existing type annotations
 
-Briefly, I noticed that shelljs has a couple of helper modules named
-`make` and `global` that dump all of shelljs' contents into the global
-scope. So I added a declaration file that reflects that into the
-shelljs typings.
+In analyze-scope.js, I see quite a few errors about missing estree
+types like Identifier and ClassDeclaration. They're all types
+that *do* exist in estree. The problem is that they're not imported,
+and there is no Javascript value to import. It's just a type.
 
+I added typedef with import types to import the types:
+
+```js
+/** @typedef {import("estree").Identifier} Identifier */
+```
+
+You could skip the typedef and write the import type each time, but it
+is a lot of typing.
+
+## Define new types
+
+Fixing these types still leaves a lot of undefined types that are
+similar to estree types but actually exist only in this project.
+For example, TSTypeAnnotation is a type that exists only in
+typescript-eslint-parser, not estree. To start with, I defined a lot
+more typedefs with any. This got rid of a lot of errors:
+
+```js
+/** @typedef {any} TSTypeAnnotation */
+```
+
+Then I changed the typedefs one by one to 'unknown', and went looking
+for errors that popped up:
+
+```js
+/** @typedef {unknown} TSTypeAnnotation */
+```
+
+(and use them)
+(and decide where to store them)
+
+## Fix errors in existing types
 
 After I got the shelljs types working, only two errors were left. It
 turns out that the `Function` type isn't specific enough to work with
@@ -184,16 +217,7 @@ function fileType(extension) {
 I changed `@returns {Function}` to the more precise
 `@returns {(s: string) => boolean`.
 
-Next I looked at analyze-scope.js. The most common errors were related
-to types from @types/estree, which weren't imported. You can't
-directly import types in Javascript, so I used import
-syntax:
 
-```js
-/** @typedef {import("estree").Identifier} Identifier */
-```
-
-Note that values that have types, like classes and constructor functions.
 
 typescript-eslint-parser also needs to define its own TS-specific
 types. I started with any:
