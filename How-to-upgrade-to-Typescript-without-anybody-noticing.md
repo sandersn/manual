@@ -74,6 +74,7 @@ For typescript-eslint-parser, I installed:
 * @types/jest
 * @types/estree
 * @types/shelljs
+* @types/eslint-scope
 
 If you are really, truly, completely in stealth mode, make sure not to
 save these installations in package.json. That's a bit extreme,
@@ -96,6 +97,9 @@ You can
 3. Add missing typings for your dependencies. TODO: LINK
 4. Add missing typings in your code. TODO: LINK
 5. Fix errors in existing types. TODO: LINK
+
+6. Stub out modules in a d.ts. (When you don't mind checking in
+Typescript code, although others don't necessarily need to edit it.)
 
 ## Missing types in dependencies
 
@@ -171,6 +175,24 @@ I added typedef with import types to import the types:
 You could skip the typedef and write the import type each time, but it
 is a lot of typing.
 
+## Define new @types packages
+
+Sometimes the number of missing types is bigger, though. The first
+error in analyze-scope.js is on
+
+```js
+new PatternVisitor(this.options, node, callback)
+```
+
+It says that it expects 0 arguments but got 3. Why did it expect 0?
+Well, PatternVisitor doesn't have its own constructor, it extends
+the class from 'eslint-scope/lib/pattern-visitor'. If you look at
+[the source](TODO LINK), you'll see a class with a 3-parameter
+constructor. But this class extends esrecurse.Visitor, which has a
+2-parameter constructor. Neither one of these classes has types.
+Adding types for nearly all of eslint-scope and esrecurse is a big
+task. There must be some way to short-circuit this.
+
 ## Define new types
 
 Fixing these types still leaves a lot of undefined types that are
@@ -180,18 +202,30 @@ typescript-eslint-parser, not estree. To start with, I defined a lot
 more typedefs with any. This got rid of a lot of errors:
 
 ```js
-/** @typedef {any} TSTypeAnnotation */
+/** @typedef {any} TSTypeQuery */
 ```
 
 Then I changed the typedefs one by one to 'unknown', and went looking
 for errors that popped up:
 
 ```js
-/** @typedef {unknown} TSTypeAnnotation */
+/** @typedef {unknown} TSTypeQuery */
 ```
+
+Turns out that only one usage exists, with a left property, so I added
+that:
+
+```js
+/** @typedef {{ left: unknown }} TSTypeQuery */
+```
+
+With little knowledge of typescript-eslint-parser, that's as far as I
+can go with this, but of course if you work on a project, you'll have
+a better idea of what the types should be.
 
 (and use them)
 (and decide where to store them)
+(CHECK YOUR WORK)
 
 ## Fix errors in existing types
 
