@@ -1,16 +1,24 @@
 # How to Upgrade to TypeScript Without Anybody Noticing
 
-OK, well, actually this means you have to stay with Javascript, but
-check with Typescript. And you'll find it really hard to stay truly
-incognito, because you'll want to add devDependencies for various
-typings.
+This guide will show you how to upgrade to Typescript without anybody
+noticing. Well, people *might* notice &mdash; what I really mean is
+that you won't have to change your build at all. You'll have the
+ability to get errors and completions in your editor and run `tsc`
+from the command line, but you won't have to integrate Typescript into
+your build.
 
+The way to do this is to not use Typescript. Stick with Javascript and
+use JSDoc to provide type information. This is less convenient than
+Typescript's syntax for types, but it means that your files stay
+boring old Javascript.
+
+Here's how. I'm going to use
+[typescript-eslint-parser](https://github.com/eslint/typescript-eslint-parser)
+as an example package so you can follow along if you want.
 
 ## Add tsconfig
 
-I start with `tsc --init` and set some settings.
-
-I added resolveJsonModule since the code requires a json file at one point.
+I like to start with `tsc --init` and change the settings it gives you.
 
 I ended up with this:
 
@@ -33,32 +41,31 @@ I ended up with this:
 }
 ```
 
-For Javascript code, target, module, esModuleInterop and noEmit should
-pretty much always have these values. And if your code ever `require`s
-a JSON file, then you'll want resolveJsonModule too, so that
-Typescript will analyze it too.
-
-*Officially*, strict should be false, but as you will see later,
+For Javascript, your "compilerOptions" will pretty much always look
+like this. "resolveJsonModule" is optional, but you'll need it if your
+code ever `require`s a JSON file, so that Typescript will analyze it
+too. *Officially*, strict should be false, but as you will see later,
  strict mode can be pretty great for Javascript code, not just
  Typescript code.
 
-For typescript-eslint-parser, I added an exclude list, since I wanted
-to check all the source files. But it turns out the parser's tests
-take the form of JS files themselves, and I don't want to check those.
-Most of them are malformed in some way.
+For typescript-eslint-parser, I added an exclude list. I wanted to
+check *all* the source files, because it's nice to have high
+aspirations. But it turns out the parser's tests take the form of JS
+files themselves, and I don't want to check those. Most of them are
+malformed in some way.
 
 You might want to use "include" if, say, you only want to check your
 source and not your tests or scripts. Or you can use "files" to give
 an explicit list of files to use, but this is annoying except for
 small projects.
 
-Run tsc and make sure it prints out errors. Now open up
+OK, you're all set. Run tsc and make sure it prints out errors. Now open up
 files in your editor and make sure the same errors show up there.
 
 Congratulations! You've done the only *required* part. Everything else
 just helps reduce the number of errors you see when editing.
 
-## Add @types packages.
+## Install @types packages.
 
 Your first order of business is to install types for packages you use.
 This is the easiest way to reduce the number of errors. Basically, if
@@ -92,16 +99,16 @@ to start fixing errors.
 
 You can
 
-1. Add shelljs' missing types. TODO: LINK
-2. Fix up the type annotations that refer to estree types. TODO: LINK
-3. Add missing typings for your dependencies. TODO: LINK
-4. Add missing typings in your code. TODO: LINK
-5. Fix errors in existing types. TODO: LINK
+1. Add missing types to dependencies.
+2. Fix up type annotations that refer to dependencies.
+4. Add missing types in your own code.
+3. Work around missing types in dependencies.
+5. Fix errors in existing types.
 
 6. Stub out modules in a d.ts. (When you don't mind checking in
 Typescript code, although others don't necessarily need to edit it.)
 
-## Missing types in dependencies
+## Add missing types in dependencies
 
 In Makefile.js, I see a few errors. The first is that the module
 `require('shelljs/make')` isn't found. The second group of errors is
@@ -159,50 +166,52 @@ If there are lint problems, the CI run on Travis will catch them.
 For more detail on writing definitions for Definitely Typed, [see the
 long explanation](?????).
 
-## Fix up existing type annotations
+## Fix references to types in dependencies
 
 In analyze-scope.js, I see quite a few errors about missing estree
-types like Identifier and ClassDeclaration. They're all types
-that *do* exist in estree. The problem is that they're not imported,
-and there is no Javascript value to import. It's just a type.
+types like Identifier and ClassDeclaration. That's weird, because
+those types *do* exist in estree. The problem is that they're not
+imported. I'd like to write
 
-I added typedef with import types to import the types:
+```js
+import { Identifier, ClassDeclaration } from "estree";
+```
+
+But this doesn't work because those are types, not values. The import
+will fail at runtime. Instead, you need to use an *import type*. An
+import type is just like a dynamic import, except that it's used as a
+type. So, just like you could write:
+
+```js
+const fs = import("fs");
+```
+
+to dynamically import `fs`, you can write:
+
+```ts
+var id: import("estree").Identifier = ...
+```
+
+to import the type `Identifier` without an import statement. And,
+because it's inconvenient to repeat `import` all over the place, you
+usually want to write a `typedef`:
 
 ```js
 /** @typedef {import("estree").Identifier} Identifier */
 ```
 
-You could skip the typedef and write the import type each time, but it
-is a lot of typing.
+## Add missing types in your own code
 
-## Define new @types packages
-
-Sometimes the number of missing types is bigger, though. The first
-error in analyze-scope.js is on
-
-```js
-new PatternVisitor(this.options, node, callback)
-```
-
-It says that it expects 0 arguments but got 3. Why did it expect 0?
-Well, PatternVisitor doesn't have its own constructor, it extends
-the class from 'eslint-scope/lib/pattern-visitor'. If you look at
-[the source](TODO LINK), you'll see a class with a 3-parameter
-constructor. But this class extends esrecurse.Visitor, which has a
-2-parameter constructor. Neither one of these classes has types.
-Adding types for nearly all of eslint-scope and esrecurse is a big
-task. There must be some way to short-circuit this.
-
-## Define new types
-
-Fixing these types still leaves a lot of undefined types that are
-similar to estree types but actually exist only in this project.
-For example, TSTypeAnnotation is a type that exists only in
-typescript-eslint-parser, not estree. To start with, I defined a lot
-more typedefs with any. This got rid of a lot of errors:
+Fixing these types still leaves a lot of undefined types in
+analyze-scope.js. The types *look* like estree types, but they're
+prefixed with TS-, like TSTypeAnnotation and TSTypeQuery. It turns out
+that these types are specific to typescript-eslint-query. So we'll
+have to define these types ourselves. To start, I defined a lot
+more typedefs with any. This got rid of the errors:
 
 ```js
 /** @typedef {any} TSTypeQuery */
+// etc ...
 ```
 
 Then I changed the typedefs one by one to 'unknown', and went looking
@@ -212,67 +221,175 @@ for errors that popped up:
 /** @typedef {unknown} TSTypeQuery */
 ```
 
-Turns out that only one usage exists, with a left property, so I added
-that:
+Turns out that only one usage exists, in the method TSQualifiedName:
+
+```js
+    /**
+    * Create reference objects for the object part. (This is `obj.prop`)
+    * @param {TSTypeQuery} node The TSTypeQuery node to visit.
+    * @returns {void}
+    */
+    TSQualifiedName(node) {
+        this.visit(node.left);
+    }
+```
+
+TSTypeQuery is supposed to have a left property, so I changed from
+`unknown` to `{ left: unknown }`:
 
 ```js
 /** @typedef {{ left: unknown }} TSTypeQuery */
 ```
 
-With little knowledge of typescript-eslint-parser, that's as far as I
-can go with this, but of course if you work on a project, you'll have
-a better idea of what the types should be.
+With little knowledge of typescript-eslint-parser, I can only use the
+code itself to figure out the types, but of course if you work on a
+project, you'll have a better idea of what the types should be.
 
 (and use them)
 (and decide where to store them)
 (CHECK YOUR WORK)
 
-## Fix errors in existing types
+## Work around missing types
 
-After I got the shelljs types working, only two errors were left. It
-turns out that the `Function` type isn't specific enough to work with
-shelljs' `filter` function. So I changed this helper function:
-
+Sometimes you'll find that one of your dependencies has no `@types`
+package at all. You are free to define types and contribute them to
+Definitely Typed, of course, but you usually need a quick way to work
+around missing dependencies. The easiest way is to add your own
+typings file to hold workarounds. For example, the next error left in
+analyze-scope.js is on:
 
 ```js
-/**
- * Generates a function that matches files with a particular extension.
- * @param {string} extension The file extension (i.e. "js")
- * @returns {Function} The function to pass into a filter method.
- * @private
- */
-function fileType(extension) {
-    return function(filename) {
-        return filename.substring(filename.lastIndexOf(".") + 1) === extension;
-    };
+new PatternVisitor(this.options, node, callback)
+```
+
+It says that PatternVisitor expects 0 arguments but got 3. Why did it
+expect 0? Well, PatternVisitor doesn't have its own constructor, but it
+extends the class from 'eslint-scope/lib/pattern-visitor'.
+Unfortunately, `@types/eslint-scope` doesn't export
+`lib/pattern-visitor`, so PatternVisitor doesn't *get* the 3-parameter
+constructor. It just has a default 0-parameter constructor.
+
+You could go off and add types for all of pattern-visitor.js, but all
+you really need right now is enough to get analyze-scope.js to compile
+without errors. You can add the rest later. Here's what I did:
+
+1. Create `types.d.ts` at the root of typescript-eslint-parser.
+2. Add the following code:
+
+```ts
+declare module "eslint/lib/pattern-visitor" {
+    class PatternVisitor {
+        constructor(x: any, y: any, z: any) {
+        }
+    }
+    export = PatternVisitor;
 }
 ```
 
-I changed `@returns {Function}` to the more precise
-`@returns {(s: string) => boolean`.
+This declares an "ambient module", which is a weaselly name for "my
+fake workaround module". It's designed for exactly this case, though,
+where you are overwhelmed by the amount of work you need to do and
+just want a way to reduce it for a while. You can even put multiple
+`declare module`s in a single file so that all your workarounds are in
+one place.
 
+This fixes the immediate problem, but a number of errors pops up on
+`PatternVisitor extends OriginalPatternVisitor`. So the definition
+needs to be more complete. Here's what I ended up with:
 
+```ts
+declare module "eslint-scope/lib/pattern-visitor" {
+    import { Node, Expression, SpreadElement } from "estree";
+    type Options = {
+        topLevel: boolean;
+        rest: boolean;
+        assignments: any[];
+    };
+    class PatternVisitor {
+        constructor(
+            options: any,
+            rootPattern: any,
+            callback: (p: any, options: Options) => void);
+        rightHandNodes: Array<Expression | SpreadElement>;
 
-typescript-eslint-parser also needs to define its own TS-specific
-types. I started with any:
-
-```js
-/** @typedef {any} TSEnumDeclaration */
+        Identifier(node: Node): void;
+        visit(node: Node): void;
+    }
+    export = PatternVisitor;
+}
 ```
 
-Later I'll change this to unknown to surface errors that will help me
-refine the type.
+I got this by (1) looking at pattern-visitor.js and (2) the estree
+types. eslint-scope uses estree types without explicitly referring to
+them, so an eventual correct fix would change eslint-scope. For now, I
+have enough to keep going.
 
-4. Fix errors
+## Fix errors in existing types
 
-This *usually* means adding types. Whenever you find a real bug, it
-means fixing that bug.
+Unfortunately, the improved type for pattern-visitor once again causes
+an error on `new PatternVisitor`. This time, the callback's type,
+`Function` isn't specific enough to work with the specific function
+type of the callback:
 
-5. what types mean
-6. some normal types you might write
-7. some advanced types
-8. some next steps if you get buy-in
-9. where to learn more I guess
+``ts
+callback: (p: any, options: Options) => void
+```
+
+So the existing JSDoc type annotation needs to change:
+
+```js
+    /**
+     * Override to use PatternVisitor we overrode.
+     * @param {Identifier} node The Identifier node to visit.
+     * @param {Object} [options] The flag to visit right-hand side nodes.
+     * @param {Function} callback The callback function for left-hand side nodes.
+     * @returns {void}
+     */
+    visitPattern(node, options, callback) {
+```
+
+I changed `@param {Function} callback` to the more precise
+`@param {(p: any, options: Options) => void} callback`.
+
+Except that Options isn't exported by my pattern-visitor workaround.
+So I moved it in the global namespace, outside the `declare module`:
+
+```ts
+type Options = {
+    topLevel: boolean;
+    rest: boolean;
+    assignments: any[];
+};
+
+declare module "eslint-scope/lib/pattern-visitor" {
+    import { Node, Expression, SpreadElement } from "estree";
+    class PatternVisitor {
+        constructor(
+            options: any,
+            rootPattern: any,
+            callback: (p: any, options: Options) => void);
+        rightHandNodes: Array<Expression | SpreadElement>;
+
+        Identifier(node: Node): void;
+        visit(node: Node): void;
+    }
+    export = PatternVisitor;
+}
+```
+
+This is messy but at the same time *horribly* convenient.
+
+## Add type annotations to everything else
+
+This *usually* means adding type annotations and types to support
+them. You won't have to change the actual code much unless you find a
+bug. If you want to see how far you have to go, turn on "strict" and
+see how many errors you get.
+
+You can use the infer-from-usage suggestions to help.
+
+
+
 
 == Some buy-in ==
 1. Add tsconfig and check it in
