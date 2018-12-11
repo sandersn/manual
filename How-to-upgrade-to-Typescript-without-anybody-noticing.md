@@ -30,9 +30,9 @@ I ended up with this:
     "allowJs": true,
     "checkJs": true,
     "noEmit": true,
-    "resolveJsonModule": true
-    "esModuleInterop": true
-    "strict": false,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "strict": false
   },
   "exclude": [
     "tests/fixtures",
