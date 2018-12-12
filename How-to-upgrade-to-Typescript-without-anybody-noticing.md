@@ -14,7 +14,8 @@ boring old Javascript.
 
 Here's how. I'm going to use
 [typescript-eslint-parser](https://github.com/eslint/typescript-eslint-parser)
-as an example package so you can follow along if you want.
+as an example package so you can follow along if you want. Notably,
+this package *parses* Typescript, but is *written* in Javascript.
 
 ## Add tsconfig
 
@@ -381,17 +382,15 @@ This is messy but at the same time *horribly* convenient.
 
 ## Add type annotations to everything else
 
+Once you get all the existing type annotations working, the next step
+is to add type annotations to everything else. You can turn on
+"strict": true to see how far you have to go. You should fall into a
+back-and-forth of adding new type annotations and fixing old ones, or
+fixing bugs.
+
 This *usually* means adding type annotations and types to support
 them. You won't have to change the actual code much unless you find a
 bug. If you want to see how far you have to go, turn on "strict" and
 see how many errors you get.
 
 You can use the infer-from-usage suggestions to help.
-
-
-
-
-== Some buy-in ==
-1. Add tsconfig and check it in
-2. Add d.ts to hold non-installed types
-3. Add a build task and maybe even hook it up to CI.
