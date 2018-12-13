@@ -88,32 +88,32 @@ If you are really, truly, completely in stealth mode, make sure not to
 save these installations in package.json. That's a bit extreme,
 though, isn't it?
 
-Anyway, these two types packages still didn't work:
+Anyway, these three types packages still didn't work:
 
 * @types/shelljs
 * @types/estree
+* @types/eslint-scope
 
-They fail for different reasons, though. shelljs's types are just
-missing types for 'shelljs/make'. estree *has* all the correct types,
-but the types aren't imported correctly. So now you can decide where
-to start fixing errors.
+They fail for different reasons, though. shelljs and es-lint-scope are
+just missing whole chunks of the package's types. estree *has* all the
+correct types, but the types aren't imported correctly. So now you can
+decide where to start fixing errors.
 
 You can
 
-1. Add missing types to dependencies.
-2. Fix up type annotations that refer to dependencies.
+1. Add missing types in dependencies.
+2. Fix references to types in dependencies.
 4. Add missing types in your own code.
 3. Work around missing types in dependencies.
 5. Fix errors in existing types.
-
-6. Stub out modules in a d.ts. (When you don't mind checking in
-Typescript code, although others don't necessarily need to edit it.)
+6. Add type annotations to everything else.
 
 ## Add missing types in dependencies
 
-In Makefile.js, I see a few errors. The first is that the module
-`require('shelljs/make')` isn't found. The second group of errors is
-that the names 'find', 'echo' and a few others aren't found.
+Let's start with @types/shelljs. In Makefile.js, I see a few errors.
+The first is that the module `require('shelljs/make')` isn't found.
+The second group of errors is that the names 'find', 'echo' and a few
+others aren't found.
 
 These errors are related. It turns out that shelljs doesn't even
 include shelljs/make right now. It's completely missing. I looked it
@@ -153,19 +153,22 @@ interface Target {
 }
 ```
 
-This exposes a couple more errors, which we will look at later.
+This exposes a couple more errors. See the section on fixing errors in
+existing types for how to fix those.
 
-Now we want to publish this to Definitely Typed.
+Now we want to publish this to Definitely Typed:
 
-1. `git clone https://github.com/DefinitelyTyped/DefinitelyTyped`
-2. `cp node_modules/@types/shelljs/make.d.ts ~/DefinitelyTyped/types/shelljs/`
-3. `git checkout -b add-shelljs-make`
-4. Create a PR for the change.
+1. Fork DefinitelyTyped on github.
+2. `git clone https://github.com/your-name-here/DefinitelyTyped`
+3. `cp node_modules/@types/shelljs/make.d.ts ~/DefinitelyTyped/types/shelljs/`
+4. `git checkout -b add-shelljs-make`
+5. Commit the change and push it to your github fork.
+6. Create a PR for the change.
 
 If there are lint problems, the CI run on Travis will catch them.
 
 For more detail on writing definitions for Definitely Typed, [see the
-long explanation](?????).
+Declaration section of the Typescript handbook](http://www.typescriptlang.org/docs/handbook/declaration-files/introduction.html).
 
 ## Fix references to types in dependencies
 
