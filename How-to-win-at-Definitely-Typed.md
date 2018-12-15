@@ -85,24 +85,49 @@ Now you need to create index.d.ts:
 // oh no it's blank!
 ```
 
-The first step to a non-blank defintion file is the moduke structure.
-There is a good oage on this in the handbook. Bascially, it boils down
-to figrung out how the moduke exoorts its contents and, conversly, how
-people will import the modukes contents.
+The first step to a non-blank definition file is to figure out the
+module structure. [There is a good page on this in the
+handbook](https://www.typescriptlang.org/docs/handbook/declaration-files/library-structures.html).
+Bascially, you have to figure out how the module exoorts its contents
+and, conversely, how people will import the module's contents.
 
-tyoescrupt expresses moduke imports in Es6 syntax, pkus an extension fir commonjs-style module.exports assignment. Since estraverse uses commonjs, youll have to map the commonjs exoorts to ES6 syntax. by searchi g fir the word esports, i can quickly see that the translation wint be too hard:
+Typescript expresses moduke imports in ES6 syntax, plus an extension
+for commonjs-style module.exports assignment. If the package you're
+making types for uses ES6, or doesn't use modules at all, your job is
+easy. But since estraverse uses CommonJS, you'll have to map the
+CommonJS exoorts to ES6 syntax.
 
-exports.traverse = traverse etc
+The first thing I do is search for the word `exports`, which turns up
+lots of export assignments at the bottom of the file:
 
-will transkate to
 
-export { traverse }
+```js
+exports.version = require('./package.json').version;
+exports.Syntax = Syntax;
+exports.traverse = traverse;
+// etc
+```
 
-or you could write it as 
+These will translate straightforwardly to:
 
-export function ttaverse { 
+```ts
+declare const version: string;
+// ...
+export { version, Syntax, traverse }
+```
 
-durectly on the original deckaration
+You can also add the export keyword directly on declarations, like so
+
+```ts
+export const version: string;
+// ...
+```
+
+## Add values
+
+Now add values for each of the exports:
+
+## Add types
 
 
 ## Cheating
