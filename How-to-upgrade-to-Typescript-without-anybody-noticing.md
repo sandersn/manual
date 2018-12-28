@@ -17,6 +17,36 @@ Here's how. I'm going to use
 as an example package so you can follow along if you want. Notably,
 this package *parses* Typescript, but is *written* in Javascript.
 
+### Things you need to know to follow along
+
+(But probably shouldn't, since this is designed to be a beginner's guide.)
+
+1. Type annotations
+
+Type annotations are the alchemical ingredient that turns Javascript
+into Typescript. To learn more, see the beginning of the handbook.
+
+JSDoc is an older notation that accomplishes the same thing. There's
+no single standard for it, so Typescript supports a number of variants.
+
+2. Definitely Typed
+
+Definitely Typed holds types for existing Javascript libraries. The
+type declarations there let you have nice editor support for existing
+libraries that Typescript would otherwise be unable to understand.
+
+3. npm and the `@types` namespace.
+
+npm is the package manager for Javascript. Definitely Typed publishes
+all its types as packages in `@types` namespace, so you can find the
+types for JQuery, for example, at `@types/jquery`. You can get
+editor support for JQuery by running
+`npm install --save-dev @types/jquery`.
+
+Note that at least (2) and (3) should be explained more in the text
+instead of separetly. (1) is mostly self-evident but needs some
+explanation for JSDoc probably.
+
 ## Add tsconfig
 
 I like to start with `tsc --init` and change the settings it gives you.
@@ -84,11 +114,7 @@ For typescript-eslint-parser, I installed:
 * @types/shelljs
 * @types/eslint-scope
 
-If you are really, truly, completely in stealth mode, make sure not to
-save these installations in package.json. That's a bit extreme,
-though, isn't it?
-
-Anyway, these three types packages still didn't work:
+Unfortunately, these three types packages still didn't work:
 
 * @types/shelljs
 * @types/estree
@@ -397,3 +423,14 @@ bug. If you want to see how far you have to go, turn on "strict" and
 see how many errors you get.
 
 You can use the infer-from-usage suggestions to help.
+
+
+## Appendix A: Terminology
+
+In this guide, I spell Javascript and Typescript with one, initial
+capital letter. Definitely Typed is spelled as two words. Both
+spellings differ from the official ones, but are, in my opinion,
+easier to read. The official spellings are *definitely* a holdover
+from the 90s when everybody tried to name things the way Microsoft
+did. Be a hipster linguist! Start adding **.com** to things before
+everyone else does!
