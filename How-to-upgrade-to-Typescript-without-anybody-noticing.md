@@ -3,87 +3,108 @@
 This guide will show you how to upgrade to Typescript without anybody
 noticing. Well, people *might* notice &mdash; what I really mean is
 that you won't have to change your build at all. You'll have the
-ability to get errors and completions in your editor and run `tsc`
-from the command line, but you won't have to integrate Typescript into
-your build.
+ability
+[to get errors and completions in supported editors](https://github.com/Microsoft/TypeScript/wiki/TypeScript-Editor-Support)
+and to get errors on the command line from `tsc`, the Typescript
+compiler, but you won't have to integrate Typescript into your build.
 
-The way to do this is to not use Typescript. Stick with Javascript and
-use JSDoc to provide type information. This is less convenient than
-Typescript's syntax for types, but it means that your files stay
-boring old Javascript.
+Here's what you'll actually need to check in to source control:
 
-Here's how. I'm going to use
+1. A Typescript configuration file, `tsconfig.json`.
+2. New dev dependencies from the `@types` package.
+3. A Typescript declaration file to hold miscellaneous types.
+
+How can you upgrade with so little change? Well, the secret is that
+*you're not using Typescript*. The Typescript compiler can check
+Javascript just fine, so just stick with Javascript and use JSDoc to
+provide type information. This is less convenient than Typescript's
+syntax for types, but it means that your files stay plain old
+Javascript and your build (if any) doesn't change at all.
+
+I'm going to use
 [typescript-eslint-parser](https://github.com/eslint/typescript-eslint-parser)
-as an example package so you can follow along if you want. Notably,
-this package *parses* Typescript, but is *written* in Javascript.
+as an example package so you can follow along if you want.
+Confusingly, even though the name includes "Typescript", the parser actually
+written in Javascript.
 
-### Things you need to know to follow along
+This guide assumes that you have used Typescript enough to:
 
-(But probably shouldn't, since this is designed to be a beginner's guide.)
+1. Have an editor set up to work with Typescript.
+2. Have used npm to install a package.
+3. Know the basic syntax of type annotations &mdash; `number`,
+`{ x: any }`, etc.
 
-1. Type annotations
+If you want to look at the package after the upgrade, you can run the
+following commands, or
+[take a look at the branch on github](https://github.com/eslint/typescript-eslint-parser/compare/master...sandersn:add-tsconfig).
 
-Type annotations are the alchemical ingredient that turns Javascript
-into Typescript. To learn more, see the beginning of the handbook.
-
-JSDoc is an older notation that accomplishes the same thing. There's
-no single standard for it, so Typescript supports a number of variants.
-
-2. Definitely Typed
-
-Definitely Typed holds types for existing Javascript libraries. The
-type declarations there let you have nice editor support for existing
-libraries that Typescript would otherwise be unable to understand.
-
-3. npm and the `@types` namespace.
-
-npm is the package manager for Javascript. Definitely Typed publishes
-all its types as packages in `@types` namespace, so you can find the
-types for JQuery, for example, at `@types/jquery`. You can get
-editor support for JQuery by running
-`npm install --save-dev @types/jquery`.
-
-Note that at least (2) and (3) should be explained more in the text
-instead of separetly. (1) is mostly self-evident but needs some
-explanation for JSDoc probably.
+```sh
+git clone https://github.com/sandersn/typescript-eslint-parser
+cd typescript-eslint-parser
+git checkout add-tsconfig
+```
 
 ## Add tsconfig
 
-I like to start with `tsc --init` and change the settings it gives you.
+I like to start with `tsc --init` and change the settings in the
+`tsconfig.json` that it produces. There are other ways to get started,
+but this gives you the most control.
 
-I ended up with this:
+```sh
+tsc --init
+```
+
+After some editing I ended up with this:
 
 ```json
 {
   "compilerOptions": {
-    "target": "esnext",
-    "module": "commonjs",
     "allowJs": true,
     "checkJs": true,
     "noEmit": true,
+    "target": "esnext",
+    "module": "commonjs",
     "resolveJsonModule": true,
-    "esModuleInterop": true,
     "strict": false
   },
   "exclude": [
-    "tests/fixtures",
-    "tests/integration"
+    "tests/fixtures/",
+    "tests/integration/"
   ]
 }
 ```
 
 For Javascript, your "compilerOptions" will pretty much always look
-like this. "resolveJsonModule" is optional, but you'll need it if your
+like this.
+
+* allowJs &mdash; Compile JS files.
+* checkJs &mdash; Give errors on JS files.
+* noEmit &mdash; Don't emit downlevel code; just give errors.
+* target &mdash; Target the newest version of EcmaScript since we're
+  not emitting code anyway.
+* module &mdash; Target node's module system since we're not emitting
+  code anyway.
+* resolveJsonModule &mdash; Compile JSON files (if they're small enough).
+* strict &mdash; Don't give the strictest possible errors.
+
+A few notes:
+* `"target"` and `"module"` should not actually matter since they have to do
+with generated downlevel code, but you'll get some bogus errors if you
+use ES6 classes like `Map` or `Set`.
+* "resolveJsonModule" is optional, but you'll need it if your
 code ever `require`s a JSON file, so that Typescript will analyze it
-too. *Officially*, strict should be false, but as you will see later,
+too.
+* *Officially*, strict should be false, but as you will see later,
  strict mode can be pretty great for Javascript code, not just
  Typescript code.
 
-For typescript-eslint-parser, I added an exclude list. I wanted to
-check *all* the source files, because it's nice to have high
-aspirations. But it turns out the parser's tests take the form of JS
-files themselves, and I don't want to check those. Most of them are
-malformed in some way.
+You may want to specify which files to compile. For
+typescript-eslint-parser, I added an `"exclude"` list. I actually
+wanted to check *all* the source files, which is what you get by
+default. But it turns out that checking a Javascript parser's tests is
+a bad idea, because the tests are themselves malformed files. Those
+malformed test files shouldn't be checked and mostly don't parse
+anyway.
 
 You might want to use "include" if, say, you only want to check your
 source and not your tests or scripts. Or you can use "files" to give
@@ -96,6 +117,8 @@ files in your editor and make sure the same errors show up there.
 Congratulations! You've done the only *required* part. Everything else
 just helps reduce the number of errors you see when editing.
 
+[Here's the commit.](https://github.com/eslint/typescript-eslint-parser/commit/9ee85f151b0ef81fa592ddbdb4f60aeb842ae42c)
+
 ## Install @types packages.
 
 Your first order of business is to install types for packages you use.
@@ -104,9 +127,23 @@ you use package X, and you see errors when you use it, try installing
 `@types/X`. Tons of packages have definitions, so you will probably
 find most of your dependencies are typed.
 
+TODO: Write out the commands.
+
+[Definitely Typed](https://github.com/DefinitelyTyped/DefinitelyTyped)
+is the source for the packages in the `@types` namespace.
+TODO: More explanation here.
+Definitely Typed holds types for existing Javascript libraries. The
+type declarations there let you have nice editor support for existing
+libraries that Typescript would otherwise be unable to understand.
+Definitely Typed publishes
+all its types as packages in `@types` namespace, so you can find the
+types for JQuery, for example, at `@types/jquery`. You can get
+editor support for JQuery by running
+`npm install --save-dev @types/jquery`.
+
 Note that if you use node at all, you likely need `@types/node`.
 
-For typescript-eslint-parser, I installed:
+[Here's a good starting set for typescript-eslint-parser](https://github.com/eslint/typescript-eslint-parser/commit/0a8bf69fc1d8c0967e7e67ade2fec38ddfeefeda):
 
 * @types/node
 * @types/jest
@@ -114,7 +151,9 @@ For typescript-eslint-parser, I installed:
 * @types/shelljs
 * @types/eslint-scope
 
-Unfortunately, these three types packages still didn't work:
+This probably isn't all of them &mdash; there are a *lot* of
+community-provided types. In addition, these three types packages
+still didn't work:
 
 * @types/shelljs
 * @types/estree
@@ -230,6 +269,8 @@ usually want to write a `typedef`:
 /** @typedef {import("estree").Identifier} Identifier */
 ```
 
+[Here's the commit.](https://github.com/eslint/typescript-eslint-parser/commit/f02b62d70cbabeebcfb6cd75dfaa2d94d0679fd5)
+
 ## Add missing types in your own code
 
 Fixing these types still leaves a lot of undefined types in
@@ -275,9 +316,7 @@ With little knowledge of typescript-eslint-parser, I can only use the
 code itself to figure out the types, but of course if you work on a
 project, you'll have a better idea of what the types should be.
 
-(and use them)
-(and decide where to store them)
-(CHECK YOUR WORK)
+[Here's the commit.](https://github.com/eslint/typescript-eslint-parser/commit/57b517c5a763ee47e92aee93d0b97ed096eaeec7)
 
 ## Work around missing types
 
@@ -354,6 +393,8 @@ types. eslint-scope uses estree types without explicitly referring to
 them, so an eventual correct fix would change eslint-scope. For now, I
 have enough to keep going.
 
+[Here's the commit.](https://github.com/eslint/typescript-eslint-parser/commit/cd00d200049e449d395d6fe8d480c4620994f225)
+
 ## Fix errors in existing types
 
 Unfortunately, the improved type for pattern-visitor once again causes
@@ -409,6 +450,8 @@ declare module "eslint-scope/lib/pattern-visitor" {
 
 This is messy but at the same time *horribly* convenient.
 
+[Here's the commit.](https://github.com/eslint/typescript-eslint-parser/commit/96df5d8fa17edefac5a7aa9d6d2971978679b860)
+
 ## Add type annotations to everything else
 
 Once you get all the existing type annotations working, the next step
@@ -423,14 +466,3 @@ bug. If you want to see how far you have to go, turn on "strict" and
 see how many errors you get.
 
 You can use the infer-from-usage suggestions to help.
-
-
-## Appendix A: Terminology
-
-In this guide, I spell Javascript and Typescript with one, initial
-capital letter. Definitely Typed is spelled as two words. Both
-spellings differ from the official ones, but are, in my opinion,
-easier to read. The official spellings are *definitely* a holdover
-from the 90s when everybody tried to name things the way Microsoft
-did. Be a hipster linguist! Start adding **.com** to things before
-everyone else does!
