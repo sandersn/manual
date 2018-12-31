@@ -144,26 +144,20 @@ errors and improving Typescript's knowledge of the code.
 
 Your first order of business is to install types for packages you use.
 This is the easiest way to reduce the number of errors. Basically, if
-you have a dependency on package X, and you see errors when you use
-it, you probably need a dev dependency on `@types/X`. Tons of packages
-have definitions, so you will probably find that most of your dependencies
-are typed.
+you have a dependency on some package, say, jquery, and you see errors
+when you use it, you probably need a dev dependency on
+`@types/jquery`. The type definitions in `@types/jquery` give
+Typescript a model of jquery that it can use to provide editor
+support, even though jquery was written before Typescript existed.
 
 [Definitely Typed](https://github.com/DefinitelyTyped/DefinitelyTyped)
-is the source for the packages in the `@types` namespace.
-TODO: More explanation here.
-Definitely Typed holds types for existing Javascript libraries. The
-type declarations there let you have nice editor support for existing
-libraries that Typescript would otherwise be unable to understand.
-Definitely Typed publishes
-all its types as packages in `@types` namespace, so you can find the
-types for JQuery, for example, at `@types/jquery`. You can get
-editor support for JQuery by running
-`npm install --save-dev @types/jquery`.
+is the source for the packages in the `@types` namespace. Anybody can
+contribute new definitions, but tons of packages already have
+definitions, so you will probably find that most of your dependencies
+do too.
 
-Note that if you use node at all, you likely need `@types/node`.
-
-[Here's a good starting set for typescript-eslint-parser](https://github.com/eslint/typescript-eslint-parser/commit/0a8bf69fc1d8c0967e7e67ade2fec38ddfeefeda):
+[Here's a good starting set for typescript-eslint-parser](https://github.com/eslint/typescript-eslint-parser/commit/0a8bf69fc1d8c0967e7e67ade2fec38ddfeefeda),
+although there are likely more available:
 
 ```sh
 npm install --save-dev @types/node
@@ -173,8 +167,7 @@ npm install --save-dev @types/shelljs@0.8.0
 npm install --save-dev @types/eslint-scope
 ```
 
-This probably isn't all of them &mdash; there are a *lot* of
-community-provided types. After the installation, these three types
+After the installation, these three types
 packages still didn't work (although notice that I intentionally had
 to install an old version of shelljs -- more on that later):
 
@@ -184,7 +177,9 @@ to install an old version of shelljs -- more on that later):
 
 They fail for different reasons, though. shelljs and es-lint-scope are
 just missing whole chunks of the package's types. estree *has* all the
-correct types, but the types aren't imported correctly. So now you can
+correct types, but the types aren't imported correctly.
+
+TODO: Add to this paragraph with "Link to Part 2". So now you can
 decide where to start fixing errors.
 
 You can
@@ -424,78 +419,115 @@ don't know what the type of `left` is, so I'll leave it as `unknown`.:
 
 Sometimes you'll find that one of your dependencies has no `@types`
 package at all. You are free to define types and contribute them to
-Definitely Typed, of course, but you usually need a quick way to work
-around missing dependencies. The easiest way is to add your own
-typings file to hold workarounds. For example, the next error left in
-analyze-scope.js is on:
+[Definitely Typed](https://github.com/DefinitelyTyped/DefinitelyTyped),
+of course, but you usually need a quick way to work around missing
+dependencies. The easiest way is to add your own typings file to hold
+workarounds. Let's look at `visitPattern` in analyze-scope.js again:
 
 ```js
-new PatternVisitor(this.options, node, callback)
+/**
+ * Override to use PatternVisitor we overrode.
+ * @param {Identifier} node The Identifier node to visit.
+ * @param {Object} [options] The flag to visit right-hand side nodes.
+ * @param {Function} callback The callback function for left-hand side nodes.
+ * @returns {void}
+ */
+visitPattern(node, options, callback) {
+    if (!node) {
+        return;
+    }
+
+    if (typeof options === "function") {
+        callback = options;
+        options = { processRightHandNodes: false };
+    }
+
+    const visitor = new PatternVisitor(this.options, node, callback);
+    visitor.visit(node);
+
+    if (options.processRightHandNodes) {
+        visitor.rightHandNodes.forEach(this.visit, this);
+    }
+}
 ```
 
-It says that PatternVisitor expects 0 arguments but got 3. Why did it
-expect 0? Well, PatternVisitor doesn't have its own constructor, but it
-extends the class from 'eslint-scope/lib/pattern-visitor'.
-Unfortunately, `@types/eslint-scope` doesn't export
-`lib/pattern-visitor`, so PatternVisitor doesn't *get* the 3-parameter
-constructor. It just has a default 0-parameter constructor.
+Now there is an error on
 
-You could go off and add types for all of pattern-visitor.js, but all
-you really need right now is enough to get analyze-scope.js to compile
-without errors. You can add the rest later. Here's what I did:
+```js
+const visitor = new PatternVisitor(this.options, node, callback)
+                ~~~~~~~~~~~~~~~~~~
+                Expected 0 arguments, but got 3.
+```
+
+But if you look at
+[`PatternVisitor` in the same file](https://github.com/sandersn/typescript-eslint-parser/blob/master/analyze-scope.js#L38),
+it doesn't even *have* a constructor. But it does extend
+`OriginalPatternVisitor`:
+
+```js
+const OriginalPatternVisitor = require("eslint-scope/lib/pattern-visitor");
+// much later in the code...
+class PatternVisitor extends OriginalPatternVisitor {
+    // more code below ...
+}
+```
+
+Probably `OriginalPatternVisitor` has a 3-parameter constructor which
+`PatternVisitor` inherits. Unfortunately, `eslint-scope` doesn't
+export `lib/pattern-visitor`, so PatternVisitor doesn't *get* the
+3-parameter constructor. It ends up with a default 0-parameter
+constructor.
+
+As described in "Add missing types in dependencies", you could add
+`OriginalPatternVisitor` in `lib/pattern-visitor.d.ts`, just like we
+did for `make.d.ts` in shelljs. But when you're just getting started,
+sometimes you just want to put a temporary type in place. You can add
+the real thing later. Here's what I did:
 
 1. Create `types.d.ts` at the root of typescript-eslint-parser.
 2. Add the following code:
 
 ```ts
 declare module "eslint/lib/pattern-visitor" {
-    class PatternVisitor {
+    class OriginalPatternVisitor {
         constructor(x: any, y: any, z: any) {
         }
     }
-    export = PatternVisitor;
+    export = OriginalPatternVisitor;
 }
 ```
 
 This declares an "ambient module", which is a weaselly name for "my
 fake workaround module". It's designed for exactly this case, though,
 where you are overwhelmed by the amount of work you need to do and
-just want a way to reduce it for a while. You can even put multiple
+just want a way to fake it for a while. You can even put multiple
 `declare module`s in a single file so that all your workarounds are in
 one place.
 
-This fixes the immediate problem, but a number of errors pops up on
-`PatternVisitor extends OriginalPatternVisitor`. So the definition
-needs to be more complete. Here's what I ended up with:
+After this, you can improve the type of OriginalPatternVisitor in the
+same bottom-up or top-down way that you would improve any other types.
+For example, I looked at
+[pattern-visitor.js in eslint](https://github.com/eslint/eslint-scope/blob/master/lib/pattern-visitor.js#L40)
+to find the names of the constructor parameters. Then I looked a
+little lower at the
+[`Identifier` method of `OriginalPatternVisitor`](https://github.com/eslint/eslint-scope/blob/master/lib/pattern-visitor.js#L66)
+to guess the type of `callback`.
+
+[Here's what I ended up with](https://github.com/eslint/typescript-eslint-parser/commit/cd00d200049e449d395d6fe8d480c4620994f225):
 
 ```ts
 declare module "eslint-scope/lib/pattern-visitor" {
-    import { Node, Expression, SpreadElement } from "estree";
-    type Options = {
-        topLevel: boolean;
-        rest: boolean;
-        assignments: any[];
-    };
-    class PatternVisitor {
+    import { Node } from "estree";
+    type Options = unknown;
+    class OriginalPatternVisitor {
         constructor(
-            options: any,
-            rootPattern: any,
-            callback: (p: any, options: Options) => void);
-        rightHandNodes: Array<Expression | SpreadElement>;
-
-        Identifier(node: Node): void;
-        visit(node: Node): void;
+            options: Options,
+            rootPattern: Node,
+            callback: (pattern: Node, options: Options) => void);
     }
-    export = PatternVisitor;
+    export = OriginalPatternVisitor;
 }
 ```
-
-I got this by (1) looking at pattern-visitor.js and (2) the estree
-types. eslint-scope uses estree types without explicitly referring to
-them, so an eventual correct fix would change eslint-scope. For now, I
-have enough to keep going.
-
-[Here's the commit.](https://github.com/eslint/typescript-eslint-parser/commit/cd00d200049e449d395d6fe8d480c4620994f225)
 
 ## Fix errors in existing types
 
@@ -504,67 +536,47 @@ an error on `new PatternVisitor`. This time, the callback's type,
 `Function` isn't specific enough to work with the specific function
 type of the callback:
 
-``ts
-callback: (p: any, options: Options) => void
+```ts
+callback: (pattern: Node, options: Options) => void
 ```
 
 So the existing JSDoc type annotation needs to change:
 
 ```js
-    /**
-     * Override to use PatternVisitor we overrode.
-     * @param {Identifier} node The Identifier node to visit.
-     * @param {Object} [options] The flag to visit right-hand side nodes.
-     * @param {Function} callback The callback function for left-hand side nodes.
-     * @returns {void}
-     */
-    visitPattern(node, options, callback) {
+/**
+ * Override to use PatternVisitor we overrode.
+ * @param {Identifier} node The Identifier node to visit.
+ * @param {Object} [options] The flag to visit right-hand side nodes.
+ * @param {Function} callback The callback function for left-hand side nodes.
+ * @returns {void}
+ */
+visitPattern(node, options, callback) {
 ```
 
-I changed `@param {Function} callback` to the more precise
-`@param {(p: any, options: Options) => void} callback`.
+I changed the type `Function` to the more precise
+`(pattern: Node, options: Options) => void`:
+
+```js
+/**
+ * Override to use PatternVisitor we overrode.
+ * @param {Identifier} node The Identifier node to visit.
+ * @param {Object} [options] The flag to visit right-hand side nodes.
+ * @param {(pattern: Node, options: import("eslint-scope/lib/pattern-visitor").Options) => void} callback The callback function for left-hand side nodes.
+ * @returns {void}
+ */
+visitPattern(node, options, callback) {
+```
 
 Except that Options isn't exported by my pattern-visitor workaround.
 So I moved it in the global namespace, outside the `declare module`:
 
-```ts
-type Options = {
-    topLevel: boolean;
-    rest: boolean;
-    assignments: any[];
-};
-
-declare module "eslint-scope/lib/pattern-visitor" {
-    import { Node, Expression, SpreadElement } from "estree";
-    class PatternVisitor {
-        constructor(
-            options: any,
-            rootPattern: any,
-            callback: (p: any, options: Options) => void);
-        rightHandNodes: Array<Expression | SpreadElement>;
-
-        Identifier(node: Node): void;
-        visit(node: Node): void;
-    }
-    export = PatternVisitor;
-}
-```
-
-This is messy but at the same time *horribly* convenient.
-
-[Here's the commit.](https://github.com/eslint/typescript-eslint-parser/commit/96df5d8fa17edefac5a7aa9d6d2971978679b860)
-
-## Add type annotations to everything else
+## Add JSDoc types to everything else
 
 Once you get all the existing type annotations working, the next step
-is to add type annotations to everything else. You can turn on
-"strict": true to see how far you have to go. You should fall into a
-back-and-forth of adding new type annotations and fixing old ones, or
-fixing bugs.
+is to add JSDoc types to everything else. You can turn on
+`"strict": true` to see how far you have to go &mdash; among other things,
+this marks any variables that have the type `any` with an error.
 
-This *usually* means adding type annotations and types to support
-them. You won't have to change the actual code much unless you find a
-bug. If you want to see how far you have to go, turn on "strict" and
-see how many errors you get.
-
-You can use the infer-from-usage suggestions to help.
+You should fall into a back-and-forth of adding new JSDoc type
+annotations and fixing old types. Usually old types just need to be
+updated to work with Typescript, but sometimes you'll find a bug.
