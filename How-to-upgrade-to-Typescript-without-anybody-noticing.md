@@ -36,25 +36,33 @@ This guide assumes that you have used Typescript enough to:
 
 If you want to look at the package after the upgrade, you can run the
 following commands, or
-[take a look at the branch on github](https://github.com/eslint/typescript-eslint-parser/compare/master...sandersn:add-tsconfig).
+[take a look at the branch on github](https://github.com/eslint/typescript-eslint-parser/compare/master...sandersn:add-tsconfig):
 
 ```sh
 git clone https://github.com/sandersn/typescript-eslint-parser
 cd typescript-eslint-parser
 git checkout add-tsconfig
+npm install
+```
+
+Also make sure that you have typescript installed on the command line:
+
+```
+npm install -g typescript
 ```
 
 ## Add tsconfig
 
 I like to start with `tsc --init` and change the settings in the
 `tsconfig.json` that it produces. There are other ways to get started,
-but this gives you the most control.
+but this gives you the most control. Run this command from the root of
+the project:
 
 ```sh
 tsc --init
 ```
 
-After some editing I ended up with this:
+After some editing I ended up with this `tsconfig.json`:
 
 ```json
 {
@@ -94,9 +102,8 @@ use ES6 classes like `Map` or `Set`.
 * "resolveJsonModule" is optional, but you'll need it if your
 code ever `require`s a JSON file, so that Typescript will analyze it
 too.
-* *Officially*, strict should be false, but as you will see later,
- strict mode can be pretty great for Javascript code, not just
- Typescript code.
+* strict should be false by default. You can satisfy the compiler on
+  strict mode with pure Javascript, but it can require some odd code.
 
 You may want to specify which files to compile. For
 typescript-eslint-parser, I added an `"exclude"` list. I actually
@@ -111,11 +118,25 @@ source and not your tests or scripts. Or you can use "files" to give
 an explicit list of files to use, but this is annoying except for
 small projects.
 
-OK, you're all set. Run tsc and make sure it prints out errors. Now open up
+OK, you're all set. Run `tsc` and make sure it prints out errors. Now open up
 files in your editor and make sure the same errors show up there.
+Below are the first few errors you should see:
 
-Congratulations! You've done the only *required* part. Everything else
-just helps reduce the number of errors you see when editing.
+```
+Makefile.js(55,18): error TS2304: Cannot find name 'find'.
+Makefile.js(56,19): error TS2304: Cannot find name 'find'.
+Makefile.js(70,5): error TS2304: Cannot find name 'echo'.
+```
+
+You should be able to see the same errors when you open Makefile.js in
+your editor and look at lines 55 and 56.
+
+Congratulations! You've done the only *required* part of the upgrade.
+You can check in `tsconfig.json` and start getting benefits from
+Typescript's checking in the editor without changing anything else. Of
+course, there are a huge number of errors, hardly any of which are due
+to real bugs. So the next step is to start getting rid of incorrect
+errors and improving Typescript's knowledge of the code.
 
 [Here's the commit.](https://github.com/eslint/typescript-eslint-parser/commit/9ee85f151b0ef81fa592ddbdb4f60aeb842ae42c)
 
@@ -123,11 +144,10 @@ just helps reduce the number of errors you see when editing.
 
 Your first order of business is to install types for packages you use.
 This is the easiest way to reduce the number of errors. Basically, if
-you use package X, and you see errors when you use it, try installing
-`@types/X`. Tons of packages have definitions, so you will probably
-find most of your dependencies are typed.
-
-TODO: Write out the commands.
+you have a dependency on package X, and you see errors when you use
+it, you probably need a dev dependency on `@types/X`. Tons of packages
+have definitions, so you will probably find that most of your dependencies
+are typed.
 
 [Definitely Typed](https://github.com/DefinitelyTyped/DefinitelyTyped)
 is the source for the packages in the `@types` namespace.
@@ -145,15 +165,18 @@ Note that if you use node at all, you likely need `@types/node`.
 
 [Here's a good starting set for typescript-eslint-parser](https://github.com/eslint/typescript-eslint-parser/commit/0a8bf69fc1d8c0967e7e67ade2fec38ddfeefeda):
 
-* @types/node
-* @types/jest
-* @types/estree
-* @types/shelljs
-* @types/eslint-scope
+```sh
+npm install --save-dev @types/node
+npm install --save-dev @types/jest
+npm install --save-dev @types/estree
+npm install --save-dev @types/shelljs@0.8.0
+npm install --save-dev @types/eslint-scope
+```
 
 This probably isn't all of them &mdash; there are a *lot* of
-community-provided types. In addition, these three types packages
-still didn't work:
+community-provided types. After the installation, these three types
+packages still didn't work (although notice that I intentionally had
+to install an old version of shelljs -- more on that later):
 
 * @types/shelljs
 * @types/estree
@@ -237,36 +260,81 @@ Declaration section of the Typescript handbook](http://www.typescriptlang.org/do
 
 ## Fix references to types in dependencies
 
-In analyze-scope.js, I see quite a few errors about missing estree
-types like Identifier and ClassDeclaration. That's weird, because
-those types *do* exist in estree. The problem is that they're not
-imported. I'd like to write
+typescript-eslint-parser actually has quite a bit of type information
+in its source already. It just happens to be written in JSDoc, and
+it's often almost, but not quite, what Typescript expects to see. For
+example, in analyze-scope.js, `visitPattern` has an interesting mix of
+types:
+
+```js
+/**
+ * Override to use PatternVisitor we overrode.
+ * @param {Identifier} node The Identifier node to visit.
+ * @param {Object} [options] The flag to visit right-hand side nodes.
+ * @param {Function} callback The callback function for left-hand side nodes.
+ * @returns {void}
+ */
+visitPattern(node, options, callback) {
+    if (!node) {
+        return;
+    }
+
+    if (typeof options === "function") {
+        callback = options;
+        options = { processRightHandNodes: false };
+    }
+
+    const visitor = new PatternVisitor(this.options, node, callback);
+    visitor.visit(node);
+
+    if (options.processRightHandNodes) {
+        visitor.rightHandNodes.forEach(this.visit, this);
+    }
+}
+```
+
+In the JSDoc at the start, there's an error on `Identifier`. (`Object`
+and `Function` are fine, although you could write more specific
+types.) That's weird, because those types *do* exist in estree. The
+problem is that they're not imported. Typescript lets you import types
+directly, like this:
 
 ```js
 import { Identifier, ClassDeclaration } from "estree";
 ```
 
-But this doesn't work because those are types, not values. The import
-will fail at runtime. Instead, you need to use an *import type*. An
-import type is just like a dynamic import, except that it's used as a
-type. So, just like you could write:
+But this doesn't work in Javascript because those are types, not
+values. They don't exist at runtime, so the import will fail at
+runtime. Instead, you need to use an *import type*. An import type is
+just like a dynamic import, except that it's used as a type. So, just
+like you could write:
 
 ```js
-const fs = import("fs");
+const estree = import("estree);
 ```
 
-to dynamically import `fs`, you can write:
+to dynamically import the `Identifier` type from estree, you can write:
 
-```ts
-var id: import("estree").Identifier = ...
+```js
+/** @type {import("estree").Identifier */
+var id = ...
 ```
 
 to import the type `Identifier` without an import statement. And,
 because it's inconvenient to repeat `import` all over the place, you
-usually want to write a `typedef`:
+usually want to write a `typedef` at the top of the file:
 
 ```js
 /** @typedef {import("estree").Identifier} Identifier */
+```
+
+With that alias in place, references to `Identifier` resolve to the
+type from estree:
+
+```js
+/**
+ * @param {Identifier} node now has the correct type
+ */
 ```
 
 [Here's the commit.](https://github.com/eslint/typescript-eslint-parser/commit/f02b62d70cbabeebcfb6cd75dfaa2d94d0679fd5)
@@ -275,46 +343,80 @@ usually want to write a `typedef`:
 
 Fixing these types still leaves a lot of undefined types in
 analyze-scope.js. The types *look* like estree types, but they're
-prefixed with TS-, like TSTypeAnnotation and TSTypeQuery. It turns out
-that these types are specific to typescript-eslint-query. So we'll
-have to define these types ourselves. To start, I defined a lot
-more typedefs with any. This got rid of the errors:
+prefixed with TS-, like `TSTypeAnnotation` and `TSTypeQuery`. Here's where
+`TSTypeQuery` is used:
+
+```js
+/**
+ * Create reference objects for the object part. (This is `obj.prop`)
+ * @param {TSTypeQuery} node The TSTypeQuery node to visit.
+ * @returns {void}
+ */
+TSQualifiedName(node) {
+    this.visit(node.left);
+}
+```
+
+It turns out that these types are specific to typescript-eslint-query.
+So we'll have to define them ourselves. To start, I defined a lot more
+typedefs with any. This gets rid of the errors:
 
 ```js
 /** @typedef {any} TSTypeQuery */
-// etc ...
+// lots more typedefs ...
 ```
 
-Then I changed the typedefs one by one to 'unknown', and went looking
-for errors that popped up:
+At this point, you have two options: bottom-up discovery of how the
+types are used, or top-down documentation of what the types should be.
+
+Bottom-up discovery, which is what I'll show below, has the advantage
+that you will end up with zero compile errors afterward. But it
+doesn't scale well; when a type is used throughout a large project,
+the chances of it being *mis*used are pretty high.
+
+Top-down documentation works well for large projects that already have
+some kind of documentation. You just need to know how to translate
+documentation into Typescript types &mdash; the
+[the Declaration section of the Typescript handbook](http://www.typescriptlang.org/docs/handbook/declaration-files/introduction.html)
+is a good starting point for this. You will sometimes have to change
+your code to fit the type using the top-down approach as well. Most of
+the time that's because the code is questionable and needs to be
+changed, but sometimes the code is fine and the compiler gets confused
+and has to be placated.
+
+I'm going to use bottom-up discovery in this case because it looks
+like top-down documentation would involve copying the entire
+Typescript node API into analyze-scope.js. To do this, I changed the
+typedefs one by one to 'unknown', and went looking for errors that
+popped up:
 
 ```js
 /** @typedef {unknown} TSTypeQuery */
 ```
 
-Turns out that only one usage exists, in the method TSQualifiedName:
+Now there's an error is on the usage of `TSTypeQuery` in
+`TSQualifiedName`, `node.left`:
 
 ```js
-    /**
-    * Create reference objects for the object part. (This is `obj.prop`)
-    * @param {TSTypeQuery} node The TSTypeQuery node to visit.
-    * @returns {void}
-    */
-    TSQualifiedName(node) {
-        this.visit(node.left);
-    }
+/**
+ * Create reference objects for the object part. (This is `obj.prop`)
+ * @param {TSTypeQuery} node The TSTypeQuery node to visit.
+ * @returns {void}
+ */
+TSQualifiedName(node) {
+    this.visit(node.left);
+    //              ~~~~
+    // error: type 'unknown' has no property 'left'
+}
 ```
 
-TSTypeQuery is supposed to have a left property, so I changed from
-`unknown` to `{ left: unknown }`:
+Looks like TSTypeQuery is supposed to have a left property, so I
+changed `TSTypeQuery` from `unknown` to `{ left: unknown }`. I still
+don't know what the type of `left` is, so I'll leave it as `unknown`.:
 
 ```js
 /** @typedef {{ left: unknown }} TSTypeQuery */
 ```
-
-With little knowledge of typescript-eslint-parser, I can only use the
-code itself to figure out the types, but of course if you work on a
-project, you'll have a better idea of what the types should be.
 
 [Here's the commit.](https://github.com/eslint/typescript-eslint-parser/commit/57b517c5a763ee47e92aee93d0b97ed096eaeec7)
 
