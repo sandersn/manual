@@ -187,6 +187,4 @@ Typescript support in the editor.
 
 You can
 [read part 2](How-to-upgrade-to-Typescript-without-anybody-noticing-part-2.md)
-or
-[part 3](How-to-upgrade-to-Typescript-without-anybody-noticing-part-3.md)
 to learn about the various kinds of fixes.
