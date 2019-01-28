@@ -76,7 +76,9 @@ existing types for how to fix those.
 
 Now we want to publish this to Definitely Typed:
 
-1. Fork DefinitelyTyped on github.
+1. Fork
+ [DefinitelyTyped](https://github.com/DefinitelyTyped/DefinitelyTyped)
+ on github.
 2. `git clone https://github.com/your-name-here/DefinitelyTyped`
 3. `cp node_modules/@types/shelljs/make.d.ts ~/DefinitelyTyped/types/shelljs/`
 4. `git checkout -b add-shelljs-make`
@@ -172,7 +174,7 @@ type from estree:
 ## Add missing types in your own code
 
 Fixing these types still leaves a lot of undefined types in
-`analyze-scope.js`. The types *look* like estree types, but they're
+`analyze-scope.js`. The types *look* like `estree` types, but they're
 prefixed with TS-, like `TSTypeAnnotation` and `TSTypeQuery`. Here's where
 `TSTypeQuery` is used:
 
@@ -240,7 +242,7 @@ TSQualifiedName(node) {
 }
 ```
 
-Looks like TSTypeQuery is supposed to have a left property, so change
+Looks like TSTypeQuery is supposed to have a `left` property, so change
 `TSTypeQuery` from `unknown` to `{ left: unknown }`. There's no more
 indication of what the type of `left` is, so leave it as
 `unknown`:
@@ -335,17 +337,17 @@ declare module "eslint/lib/pattern-visitor" {
 }
 ```
 
-This declares an "ambient module", which is a pompous name for "my
-fake workaround module". It's designed for exactly this case, though,
-where you are overwhelmed by the amount of work you need to do and
-just want a way to fake it for a while. You can even put multiple
-`declare module`s in a single file so that all your workarounds are in
-one place.
+This declares an "ambient module", which is a pompous name for "fake
+workaround module". It's designed for exactly this case, though, where
+you are overwhelmed by the amount of work you need to do and just want
+a way to fake it for a while. You can even put multiple `declare
+module`s in a single file so that all your workarounds are in one
+place.
 
 After this, you can improve the type of `OriginalPatternVisitor` in the
 same bottom-up or top-down way that you would improve any other types.
 For example, you can look at
-[pattern-visitor.js in eslint](https://github.com/eslint/eslint-scope/blob/master/lib/pattern-visitor.js#L40)
+[`pattern-visitor.js` in eslint](https://github.com/eslint/eslint-scope/blob/master/lib/pattern-visitor.js#L40)
 to find the names of the constructor parameters. Then, a little lower
 in the
 [`Identifier` method of `OriginalPatternVisitor`](https://github.com/eslint/eslint-scope/blob/master/lib/pattern-visitor.js#L66)

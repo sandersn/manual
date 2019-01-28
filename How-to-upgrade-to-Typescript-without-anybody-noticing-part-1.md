@@ -144,17 +144,18 @@ errors and improving Typescript's knowledge of the code.
 ## Install @types packages.
 
 Your first order of business is to install types for packages you use.
-This is the easiest way to reduce the number of errors. Basically, if
-you have a dependency on some package, say, `jquery`, and you see errors
-when you use it, you probably need a dev dependency on
-`@types/jquery`. The type definitions in `@types/jquery` give
-Typescript a model of jquery that it can use to provide editor
-support, even though jquery was written before Typescript existed.
+This allows Typescript to understand them, which makes it the easiest
+way to reduce the number of errors. Basically, if you have a
+dependency on some package, say, `jquery`, and you see errors when you
+use it, you probably need a dev dependency on `@types/jquery`. The
+type definitions in `@types/jquery` give Typescript a model of jquery
+that it can use to provide editor support, even though jquery was
+written before Typescript existed.
 
 [Definitely Typed](https://github.com/DefinitelyTyped/DefinitelyTyped)
 is the source for the packages in the `@types` namespace. Anybody can
-contribute new definitions, but tons of packages already have
-definitions, so you will probably find that most of your dependencies
+contribute new type definitions, but tons of packages already have
+type definitions, so you will probably find that most of your dependencies
 do too.
 
 [Here's a good starting set for typescript-eslint-parser](https://github.com/eslint/typescript-eslint-parser/commit/0a8bf69fc1d8c0967e7e67ade2fec38ddfeefeda),
