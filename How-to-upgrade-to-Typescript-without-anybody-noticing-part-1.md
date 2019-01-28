@@ -16,16 +16,16 @@ Here's what you'll actually need to check in to source control:
 
 How can you upgrade with so little change? Well, the secret is that
 *you're not using Typescript*. The Typescript compiler can check
-Javascript just fine, so just stick with Javascript and use JSDoc to
+Javascript just fine, so you can stick with Javascript and use JSDoc to
 provide type information. This is less convenient than Typescript's
 syntax for types, but it means that your files stay plain old
 Javascript and your build (if any) doesn't change at all.
 
-I'm going to use
+Let's use
 [typescript-eslint-parser](https://github.com/eslint/typescript-eslint-parser)
 as an example package so you can follow along if you want.
-Confusingly, even though the name includes "Typescript", the parser actually
-written in Javascript.
+Confusingly, even though the name includes "Typescript", the parser is
+actually written in Javascript.
 
 This guide assumes that you have used Typescript enough to:
 
@@ -53,16 +53,17 @@ npm install -g typescript
 
 ## Add tsconfig
 
-I like to start with `tsc --init` and change the settings in the
-`tsconfig.json` that it produces. There are other ways to get started,
-but this gives you the most control. Run this command from the root of
-the project:
+Your first step is to start with `tsc --init` and change the settings
+in the `tsconfig.json` that it produces. There are other ways to get
+started, but this gives you the most control. Run this command from
+the root of the project:
 
 ```sh
 tsc --init
 ```
 
-After some editing I ended up with this `tsconfig.json`:
+Here is what you should end up with, skipping the lines you don't need
+to change:
 
 ```json
 {
@@ -106,8 +107,8 @@ too.
   strict mode with pure Javascript, but it can require some odd code.
 
 You may want to specify which files to compile. For
-typescript-eslint-parser, I added an `"exclude"` list. I actually
-wanted to check *all* the source files, which is what you get by
+typescript-eslint-parser, you'll be happiest with an `"exclude"` list. You *may*
+want to check *all* the source files, which is what you get by
 default. But it turns out that checking a Javascript parser's tests is
 a bad idea, because the tests are themselves malformed files. Those
 malformed test files shouldn't be checked and mostly don't parse
@@ -144,7 +145,7 @@ errors and improving Typescript's knowledge of the code.
 
 Your first order of business is to install types for packages you use.
 This is the easiest way to reduce the number of errors. Basically, if
-you have a dependency on some package, say, jquery, and you see errors
+you have a dependency on some package, say, `jquery`, and you see errors
 when you use it, you probably need a dev dependency on
 `@types/jquery`. The type definitions in `@types/jquery` give
 Typescript a model of jquery that it can use to provide editor
@@ -167,17 +168,19 @@ npm install --save-dev @types/shelljs@0.8.0
 npm install --save-dev @types/eslint-scope
 ```
 
-After the installation, these three types
-packages still didn't work (although notice that I intentionally had
-to install an old version of shelljs -- more on that later):
+After the installation, these three types packages still didn't work
+(although notice that we intentionally installed an old version of
+shelljs -- more on that later):
 
 * @types/shelljs
 * @types/estree
 * @types/eslint-scope
 
-They fail for different reasons, though. shelljs and es-lint-scope are
-just missing whole chunks of the package's types. estree *has* all the
+They fail for different reasons, though. shelljs and es-lint-scope just
+don't have types for a lot of their values. estree *has* all the
 correct types, but the types aren't imported correctly.
+[Part 2](How-to-upgrade-to-Typescript-without-anybody-noticing-part-2.md)
+shows how to fix these two problems.
 
 At this point, you have types for some of your packages working and
 your own code checked by the Typescript compiler. The next step is to
@@ -185,6 +188,6 @@ fix compile errors in the rest of the package types, or to fix them in your
 own code. Or you can just ignore the errors and start using the
 Typescript support in the editor.
 
-You can
-[read part 2](How-to-upgrade-to-Typescript-without-anybody-noticing-part-2.md)
+Next up:
+[Part 2](How-to-upgrade-to-Typescript-without-anybody-noticing-part-2.md),
 to learn about the various kinds of fixes.

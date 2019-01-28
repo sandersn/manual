@@ -15,6 +15,12 @@ Here's are the tasks:
 5. Fix errors in existing types.
 6. Add type annotations to everything else.
 
+This guide does *not* teach you how to write type definitions.
+[The Declaration section of the Typescript handbook](http://www.typescriptlang.org/docs/handbook/declaration-files/introduction.html)
+is the best place to learn about that. Here, you'll just see types
+presented without a lot of explanation.
+
+
 ## Add missing types in dependencies
 
 Let's start with @types/shelljs. In Makefile.js, I see a few errors.
@@ -22,20 +28,24 @@ The first is that the module `require('shelljs/make')` isn't found.
 The second group of errors is that the names 'find', 'echo' and a few
 others aren't found.
 
-These errors are related. It turns out that shelljs doesn't even
-include shelljs/make right now. It's completely missing. I looked it
-up and shelljs/make does two things:
+These errors are related. It turns out that `@types/shelljs` doesn't
+even include shelljs/make.d.ts right now. It's completely missing. If
+you
+[look at the source](https://github.com/shelljs/shelljs/blob/master/make.js),
+shelljs/make.js does two things:
 
-1. Add a global object named 'target' that allows you to add make
+1. Add the contents of the parent shelljs to the global scope.
+2. Add a global object named 'target' that allows you to add make
 targets.
-2. Add the contents of the parent shelljs to the global scope.
 
-So I want to add this to Definitely Typed. My first step is to create
-make.d.ts inside node_modules/@types/shelljs/. This is just for
-development, because it makes it super easy to test that I'm actually
-fixing the missing stuff.
+Let's say you want to add make to Definitely Typed so that it is
+available in `@types/shelljs`. Your first step is to create make.d.ts
+inside node_modules/@types/shelljs/. This is the wrong location
+&mdash; it's inside your own node_modules folder &mdash; but it makes
+development super easy to test that you're actually fixing the
+missing stuff. You can create a proper PR after everything is working.
 
-I start with this:
+Start with this:
 
 ```ts
 import * as shelljs from './';
@@ -46,7 +56,8 @@ declare global {
 }
 ```
 
-Then I add the type for 'target' to the globals as well:
+This copies all of shelljs' contents into the global namespace.
+Then add the type for 'target' to the globals as well:
 
 ```ts
 const target: {
@@ -72,7 +83,7 @@ Now we want to publish this to Definitely Typed:
 5. Commit the change and push it to your github fork.
 6. Create a PR for the change.
 
-If there are lint problems, the CI run on Travis will catch them.
+If there are lint problems, the CI run on Definitely Typed will catch them.
 
 For more detail on writing definitions for Definitely Typed, [see the
 Declaration section of the Typescript handbook](http://www.typescriptlang.org/docs/handbook/declaration-files/introduction.html).
@@ -123,10 +134,10 @@ import { Identifier, ClassDeclaration } from "estree";
 ```
 
 But this doesn't work in Javascript because those are types, not
-values. They don't exist at runtime, so the import will fail at
-runtime. Instead, you need to use an *import type*. An import type is
-just like a dynamic import, except that it's used as a type. So, just
-like you could write:
+values. Types don't exist at runtime, so the import will fail at
+runtime when `Identifier` is not found. Instead, you need to use an
+*import type*. An import type is just like a dynamic import, except
+that it's used as a type. So, just like you could write:
 
 ```js
 const estree = import("estree);
@@ -177,8 +188,8 @@ TSQualifiedName(node) {
 ```
 
 It turns out that these types are specific to typescript-eslint-query.
-So we'll have to define them ourselves. To start, I defined a lot more
-typedefs with any. This gets rid of the errors:
+So you'll have to define them yourself. To start, define the typedefs
+you need as `any`. This gets rid of the errors at the cost of accuracy:
 
 ```js
 /** @typedef {any} TSTypeQuery */
@@ -195,7 +206,7 @@ the chances of it being *mis*used are pretty high.
 
 Top-down documentation works well for large projects that already have
 some kind of documentation. You just need to know how to translate
-documentation into Typescript types &mdash; the
+documentation into Typescript types;
 [the Declaration section of the Typescript handbook](http://www.typescriptlang.org/docs/handbook/declaration-files/introduction.html)
 is a good starting point for this. You will sometimes have to change
 your code to fit the type using the top-down approach as well. Most of
@@ -203,11 +214,11 @@ the time that's because the code is questionable and needs to be
 changed, but sometimes the code is fine and the compiler gets confused
 and has to be placated.
 
-I'm going to use bottom-up discovery in this case because it looks
+Let's use bottom-up discovery in this case because it looks
 like top-down documentation would involve copying the entire
-Typescript node API into analyze-scope.js. To do this, I changed the
-typedefs one by one to 'unknown', and went looking for errors that
-popped up:
+Typescript node API into analyze-scope.js. To do this, change the
+typedefs one by one to 'unknown', and look for errors that
+pop up. For example:
 
 ```js
 /** @typedef {unknown} TSTypeQuery */
@@ -229,14 +240,17 @@ TSQualifiedName(node) {
 }
 ```
 
-Looks like TSTypeQuery is supposed to have a left property, so I
-changed `TSTypeQuery` from `unknown` to `{ left: unknown }`. I still
-don't know what the type of `left` is, so I'll leave it as `unknown`.:
+Looks like TSTypeQuery is supposed to have a left property, so change
+`TSTypeQuery` from `unknown` to `{ left: unknown }`. There's no more
+indication of what the type of `left` is, so leave it as
+`unknown`:
 
 ```js
 /** @typedef {{ left: unknown }} TSTypeQuery */
 ```
 
+As you can see, bottom-up type discovery can be a bit unsatisfying and
+underspecified, but it's less disruptive to existing code.
 [Here's the commit.](https://github.com/eslint/typescript-eslint-parser/commit/57b517c5a763ee47e92aee93d0b97ed096eaeec7)
 
 ## Work around missing types
@@ -306,7 +320,7 @@ As described in "Add missing types in dependencies", you could add
 `OriginalPatternVisitor` in `lib/pattern-visitor.d.ts`, just like we
 did for `make.d.ts` in shelljs. But when you're just getting started,
 sometimes you just want to put a temporary type in place. You can add
-the real thing later. Here's what I did:
+the real thing later. Here's what you can do:
 
 1. Create `types.d.ts` at the root of typescript-eslint-parser.
 2. Add the following code:
@@ -321,7 +335,7 @@ declare module "eslint/lib/pattern-visitor" {
 }
 ```
 
-This declares an "ambient module", which is a weaselly name for "my
+This declares an "ambient module", which is a pompous name for "my
 fake workaround module". It's designed for exactly this case, though,
 where you are overwhelmed by the amount of work you need to do and
 just want a way to fake it for a while. You can even put multiple
@@ -330,14 +344,15 @@ one place.
 
 After this, you can improve the type of OriginalPatternVisitor in the
 same bottom-up or top-down way that you would improve any other types.
-For example, I looked at
+For example, you can look at
 [pattern-visitor.js in eslint](https://github.com/eslint/eslint-scope/blob/master/lib/pattern-visitor.js#L40)
-to find the names of the constructor parameters. Then I looked a
-little lower at the
+to find the names of the constructor parameters. Then, a little lower
+in the
 [`Identifier` method of `OriginalPatternVisitor`](https://github.com/eslint/eslint-scope/blob/master/lib/pattern-visitor.js#L66)
-to guess the type of `callback`.
+there is a usage of `callback` that gives enough information to guess
+its type.
 
-[Here's what I ended up with](https://github.com/eslint/typescript-eslint-parser/commit/cd00d200049e449d395d6fe8d480c4620994f225):
+[Here's what you'll end up with](https://github.com/eslint/typescript-eslint-parser/commit/cd00d200049e449d395d6fe8d480c4620994f225):
 
 ```ts
 declare module "eslint-scope/lib/pattern-visitor" {
@@ -377,7 +392,7 @@ So the existing JSDoc type annotation needs to change:
 visitPattern(node, options, callback) {
 ```
 
-I changed the type `Function` to the more precise
+The right fix is to chang the type `Function` to the more precise
 `(pattern: Node, options: Options) => void`:
 
 ```js
@@ -390,9 +405,6 @@ I changed the type `Function` to the more precise
  */
 visitPattern(node, options, callback) {
 ```
-
-Except that Options isn't exported by my pattern-visitor workaround.
-So I moved it in the global namespace, outside the `declare module`:
 
 ## Add JSDoc types to everything else
 
