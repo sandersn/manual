@@ -86,36 +86,36 @@ to change:
 For Javascript, your "compilerOptions" will pretty much always look
 like this.
 
-* allowJs &mdash; Compile JS files.
-* checkJs &mdash; Give errors on JS files.
-* noEmit &mdash; Don't emit downlevel code; just give errors.
-* target &mdash; Target the newest version of EcmaScript since we're
+* `allowJs` &mdash; Compile JS files.
+* `checkJs` &mdash; Give errors on JS files.
+* `noEmit` &mdash; Don't emit downlevel code; just give errors.
+* `target` &mdash; Target the newest version of EcmaScript since we're
   not emitting code anyway.
-* module &mdash; Target node's module system since we're not emitting
+* `module` &mdash; Target node's module system since we're not emitting
   code anyway.
-* resolveJsonModule &mdash; Compile JSON files (if they're small enough).
-* strict &mdash; Don't give the strictest possible errors.
+* `resolveJsonModule` &mdash; Compile JSON files (if they're small enough).
+* `strict` &mdash; Don't give the strictest possible errors.
 
 A few notes:
 * `"target"` and `"module"` should not actually matter since they have to do
 with generated downlevel code, but you'll get some bogus errors if you
 use ES6 classes like `Map` or `Set`.
-* "resolveJsonModule" is optional, but you'll need it if your
+* `"resolveJsonModule"` is optional, but you'll need it if your
 code ever `require`s a JSON file, so that Typescript will analyze it
 too.
-* strict should be false by default. You can satisfy the compiler on
+* `"strict"` should be false by default. You can satisfy the compiler on
   strict mode with pure Javascript, but it can require some odd code.
 
 You may want to specify which files to compile. For
-typescript-eslint-parser, you'll be happiest with an `"exclude"` list. You *may*
-want to check *all* the source files, which is what you get by
-default. But it turns out that checking a Javascript parser's tests is
-a bad idea, because the tests are themselves malformed files. Those
-malformed test files shouldn't be checked and mostly don't parse
-anyway.
+typescript-eslint-parser, you'll be happiest with an `"exclude"` list.
+You *may* want to check *all* the source files, which is what you get
+by default. But it turns out that checking a Javascript parser's tests
+is a bad idea, because the tests are themselves malformed Javascript
+files. Those malformed test files shouldn't be checked and mostly
+don't parse anyway.
 
-You might want to use "include" if, say, you only want to check your
-source and not your tests or scripts. Or you can use "files" to give
+You might want to use `"include"` if, say, you only want to check your
+source and not your tests or scripts. Or you can use `"files"` to give
 an explicit list of files to use, but this is annoying except for
 small projects.
 
@@ -172,9 +172,9 @@ After the installation, these three types packages still didn't work
 (although notice that we intentionally installed an old version of
 shelljs -- more on that later):
 
-* @types/shelljs
-* @types/estree
-* @types/eslint-scope
+* `@types/shelljs`
+* `@types/eslint-scope`
+* `@types/estree`
 
 They fail for different reasons, though. shelljs and es-lint-scope just
 don't have types for a lot of their values. estree *has* all the

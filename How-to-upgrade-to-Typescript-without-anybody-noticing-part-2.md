@@ -23,26 +23,26 @@ presented without a lot of explanation.
 
 ## Add missing types in dependencies
 
-Let's start with @types/shelljs. In Makefile.js, I see a few errors.
+Let's start with `@types/shelljs`. In Makefile.js, I see a few errors.
 The first is that the module `require('shelljs/make')` isn't found.
 The second group of errors is that the names 'find', 'echo' and a few
 others aren't found.
 
 These errors are related. It turns out that `@types/shelljs` doesn't
-even include shelljs/make.d.ts right now. It's completely missing. If
+even include `shelljs/make.d.ts` right now. It's completely missing. If
 you
 [look at the source](https://github.com/shelljs/shelljs/blob/master/make.js),
-shelljs/make.js does two things:
+`shelljs/make.js` does two things:
 
 1. Add the contents of the parent shelljs to the global scope.
 2. Add a global object named 'target' that allows you to add make
 targets.
 
 Let's say you want to add make to Definitely Typed so that it is
-available in `@types/shelljs`. Your first step is to create make.d.ts
-inside node_modules/@types/shelljs/. This is the wrong location
-&mdash; it's inside your own node_modules folder &mdash; but it makes
-development super easy to test that you're actually fixing the
+available in `@types/shelljs`. Your first step is to create `make.d.ts`
+inside `node_modules/@types/shelljs/`. This is the wrong location
+&mdash; it's inside your own `node_modules` folder &mdash; but it makes
+development super easy to test that you're actually adding the
 missing stuff. You can create a proper PR after everything is working.
 
 Start with this:
@@ -57,7 +57,7 @@ declare global {
 ```
 
 This copies all of shelljs' contents into the global namespace.
-Then add the type for 'target' to the globals as well:
+Then add the type for `target` to the globals as well:
 
 ```ts
 const target: {
@@ -93,7 +93,7 @@ Declaration section of the Typescript handbook](http://www.typescriptlang.org/do
 typescript-eslint-parser actually has quite a bit of type information
 in its source already. It just happens to be written in JSDoc, and
 it's often almost, but not quite, what Typescript expects to see. For
-example, in analyze-scope.js, `visitPattern` has an interesting mix of
+example, in `analyze-scope.js`, `visitPattern` has an interesting mix of
 types:
 
 ```js
@@ -125,7 +125,7 @@ visitPattern(node, options, callback) {
 
 In the JSDoc at the start, there's an error on `Identifier`. (`Object`
 and `Function` are fine, although you could write more specific
-types.) That's weird, because those types *do* exist in estree. The
+types.) That's weird, because those types *do* exist in `estree`. The
 problem is that they're not imported. Typescript lets you import types
 directly, like this:
 
@@ -143,7 +143,7 @@ that it's used as a type. So, just like you could write:
 const estree = import("estree);
 ```
 
-to dynamically import the `Identifier` type from estree, you can write:
+to dynamically import the `Identifier` type from `estree`, you can write:
 
 ```js
 /** @type {import("estree").Identifier */
@@ -172,7 +172,7 @@ type from estree:
 ## Add missing types in your own code
 
 Fixing these types still leaves a lot of undefined types in
-analyze-scope.js. The types *look* like estree types, but they're
+`analyze-scope.js`. The types *look* like estree types, but they're
 prefixed with TS-, like `TSTypeAnnotation` and `TSTypeQuery`. Here's where
 `TSTypeQuery` is used:
 
@@ -199,7 +199,7 @@ you need as `any`. This gets rid of the errors at the cost of accuracy:
 At this point, you have two options: bottom-up discovery of how the
 types are used, or top-down documentation of what the types should be.
 
-Bottom-up discovery, which is what I'll show below, has the advantage
+Bottom-up discovery, which is you'll see below, has the advantage
 that you will end up with zero compile errors afterward. But it
 doesn't scale well; when a type is used throughout a large project,
 the chances of it being *mis*used are pretty high.
@@ -216,7 +216,7 @@ and has to be placated.
 
 Let's use bottom-up discovery in this case because it looks
 like top-down documentation would involve copying the entire
-Typescript node API into analyze-scope.js. To do this, change the
+Typescript node API into `analyze-scope.js`. To do this, change the
 typedefs one by one to 'unknown', and look for errors that
 pop up. For example:
 
@@ -260,7 +260,7 @@ package at all. You are free to define types and contribute them to
 [Definitely Typed](https://github.com/DefinitelyTyped/DefinitelyTyped),
 of course, but you usually need a quick way to work around missing
 dependencies. The easiest way is to add your own typings file to hold
-workarounds. Let's look at `visitPattern` in analyze-scope.js again:
+workarounds. Let's look at `visitPattern` in `analyze-scope.js` again:
 
 ```js
 /**
@@ -312,7 +312,7 @@ class PatternVisitor extends OriginalPatternVisitor {
 
 Probably `OriginalPatternVisitor` has a 3-parameter constructor which
 `PatternVisitor` inherits. Unfortunately, `eslint-scope` doesn't
-export `lib/pattern-visitor`, so PatternVisitor doesn't *get* the
+export `lib/pattern-visitor`, so `PatternVisitor` doesn't *get* the
 3-parameter constructor. It ends up with a default 0-parameter
 constructor.
 
@@ -342,7 +342,7 @@ just want a way to fake it for a while. You can even put multiple
 `declare module`s in a single file so that all your workarounds are in
 one place.
 
-After this, you can improve the type of OriginalPatternVisitor in the
+After this, you can improve the type of `OriginalPatternVisitor` in the
 same bottom-up or top-down way that you would improve any other types.
 For example, you can look at
 [pattern-visitor.js in eslint](https://github.com/eslint/eslint-scope/blob/master/lib/pattern-visitor.js#L40)
