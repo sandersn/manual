@@ -7,7 +7,7 @@
 
 ## Basics
 
-Assignability is, essentially, the function that determines whether
+Assignability is the function that determines whether
 one variable can be assigned to another. It happens when the compiler checks
 assignments and function calls, but also return statements. For
 example:
@@ -54,7 +54,7 @@ For brevity's sake, I'll often use the operator ⟹ to represent
 
 In fact, one common bug in the compiler is to use `===` where
 `⟹` is the correct check. This is a bug because Typescript
-supports many more types, and kinds of types, than just the primitive
+supports many more kinds of types than just the primitive
 types. Good examples include classes and interfaces, unions and
 intersections, and literal types and enums. Those 3 pairs are
 examples of three categories which we’ll cover next:
@@ -63,8 +63,8 @@ examples of three categories which we’ll cover next:
 * Types created using algebraic operators
 * Special-cased types (literals and enums)
 
-(Note that generics are a complex topic that covers both structural
-and algebraic types so I’ll not cover them here.)
+Note that generics are a complex topic that covers both structural
+and algebraic types so I’ll not cover them here.
 
 ## Structural Assignability
 
@@ -72,15 +72,15 @@ Structural assignability is an feature of Typescript that most
 languages do not have. But it's expensive: it's the last assignability
 check because it's so slow and painstaking. Structural assignability
 functions as a fallback when all other kinds of assignability have
-failed to return true. In fact, `===` is the first check!
+failed to return true.
 
 Structural assignability applies to anything that has
-properties and signatures: classes, interfaces, and object literal
-types, basically. Intersection types also check structural
+properties or signatures: classes, interfaces, and object literal
+types, basically. Intersection types also try structural
 assignability if no other comparison works.
 
 The comparison itself is not that complicated. It first checks that
-every property in the target is present in the source:
+every property in the target is present in the source. Here's a failing example:
 
 ```ts
 var source: { a, b };
@@ -133,14 +133,14 @@ var target: (a: never, b: string) => void;
 target = source;
 ```
 
-Except signatures check for correct parameter count instead of missing
+Except that signatures check for correct parameter count instead of missing
 properties, and iterate over parameters instead of properties. In
 addition, parameters compare contravariantly, which is a fancy way to
-say that the direction of source and target flips, so that `string
-⟹ unknown` but `(a: unknown) => void ⟹ (a: string) => void`. That's
+say that the direction of source and target flips. That's
 because when you assign a callback variable, you're not actually
 assigning the *parameters* directly. You're assigning a callable thing
-to another callable thing. For example:
+to another callable thing. Here's an example where `string ⟹ unknown`
+but `(a: unknown) => void ⟹ (a: string) => void`. For example:
 
 ```ts
 var source: string;
@@ -155,10 +155,10 @@ target(1); // oops, you can't pass numbers to source
 
 ### Inheritance
 
-Once you have structural assignability, you don't actually need an
-inheritance relation. You just check that derived classes are
-assignable to their base classes. Same thing goes for implements. In
-other words, if you have classes like this:
+Once you have structural assignability, you don't actually need to add
+special rules to handle inheritance. You just check that derived
+classes are assignable to their base classes. Same thing goes for
+implements. In other words, if you have classes like this:
 
 ```ts
 class Base {
@@ -218,7 +218,7 @@ so it can eliminate it and recur with a smaller type:
 
 And since `T===T`, `T | never ⟹ T` is true.
 
-Other kinds of relations are pretty obvious. For example, when a union
+Some algebraic relations are pretty obvious. For example, when a union
 is the target, the source is assignable when it's assignable to any
 element of the union:
 
@@ -226,9 +226,9 @@ element of the union:
 > `B ⟹ B`
 
 But when a union is the source, *every* element needs to be assignable
-to the target. So `A | B | C ⟹ B` isn't true in general, just in
-cases where the target is supertype of all elements of the unions:
-`'x' | 'y' | 'z' ⟹ string`.
+to the target. So `A | B | C ⟹ B` is not true in general. It's only
+true when the target is a supertype of all elements of the source.
+One example is with literal types: `'x' | 'y' | 'z' ⟹ string`.
 
 More complicated relations exist as well. For example, intersection
 distributes across union:
@@ -255,18 +255,18 @@ smaller union is missing `"c"`.
 
 For mapped types, any type T is assignable to the identity mapping:
 
-> `T ==> { [P in X]: T[P] }`
+> `T ⟹ { [P in X]: T[P] }`
 
 This follows from the definition of mapped types. Note that the
 reverse is not true because mapping a type loses some information.
 
 Finally, some complex relations involve all three kinds of type. For
 example, if you have some key type `K` and a rewrite type `X`, a
-mapped type `{ [P in K]: X }` is assignable to `T` if `K` is
-assignable to the keys of `T` and `X` is assignable to all the
+mapped type `{ [P in K]: X }` is assignable to `T` if the keys of `T`
+are assignable to `K` and `X` is assignable to all the
 properties of `T`:
 
-> `{ [P in K]: X } ⟹ T`
+> `{ [P in K]: X } ⟹ T`  
 > `keyof T ⟹ K` and `X ⟹ T[K]`  
 
 This is true in the other direction too:
@@ -366,10 +366,10 @@ optional properties. With structural assignability, *any* type is
 assignable to a weak type. All these assignments are structurally
 sound:
 
-> `{ a } ⟹ { a?, b? }`
-> `{ a, b, e } ⟹ { a?, b? }`
-> `{ c, d } ⟹ { a?, b? }`
-> `{ } ⟹ { a?, b? }`
+> `{ a } ⟹ { a?, b? }`  
+> `{ a, b, e } ⟹ { a?, b? }`  
+> `{ c, d } ⟹ { a?, b? }`  
+> `{ } ⟹ { a?, b? }`  
 
 However, only the first two make any kind of sense, so the weak type
 check requires that the source share at least one property with a weak
@@ -377,7 +377,7 @@ target.
 
 ### Structural cutoffs
 
-Structural assignability has problems with recursion. Specifically, if
+Structural assignability has trouble with recursive types. Specifically, if
 you write a class like this:
 
 ```ts
@@ -409,15 +409,17 @@ But `m` poses a problem:
 Oh no. Looks like we are going to loop forever!
 
 Typescript actually has two solutions for this problem. The simplest
-is to notice that `Box === Box` and to check the arguments of `Box`
-instead of using structural assignability:
+is to notice that `Box === Box` treat type arguments as an algebraic
+relation. Then it simplifies `Box<T> ⟹ Box<U>` to `T ⟹ U`. This is
+much faster than using structural assigning ability to decide whether
+`Box<T>.t` is assignable to `Box<U>.t`.
 
 > `Box<string> ⟹ Box<unknown>`  
 > `string ⟹ unknown`  
 
 This works quite often because most of the time people write nominal
 code, even in a structural type system. But what if somebody shows up
-with a similar class that they then updated to work with `Box`?
+with a similar class that they just updated to work with `Box`?
 
 ```ts
 declare class Ref<T> {
@@ -441,9 +443,9 @@ until we try to check `other` again:
 Even though `Ref !== Box`, we can use the fact that this is the second
 occurrence of `Ref<string> ⟹ Box<unknown>` to infer that the second
 check will not provide any new information. However, instead of
-returning true, structural assignability actually uses a ternary to
-return Maybe. A Maybe result becomes true if all non-Maybe results are
-true. Otherwise it stays Maybe.
+returning True, structural assignability return Maybe, a ternary
+value. A Maybe result becomes true if all non-Maybe results are true.
+Otherwise it stays Maybe.
 
 This causes `Ref<string> ⟹ Box<unknown>` to succeed because `Ref.t` is
 in fact assignable to `Box.t` and `item` and `deref` don't matter for
@@ -470,7 +472,7 @@ type of `fmap`. Once you get started checking
 
 To prevent this, structural assignability has an arbitrary 5-deep
 cutoff for comparing identical pairs of types, even if their arguments
-are different. That is, if we compare the pair (Functor, Mappable) 5
+are different. That is, if we compare the pair `(Functor, Mappable)` 5
 times, that particular comparison will return Maybe.
 
 ## Summary
@@ -493,3 +495,6 @@ counts as true.
 I also skipped quite a few small details like how private properties
 are handled. For the actual code, look at `checkTypeRelatedTo` in
 src/compiler/checker.ts in the TypeScript repository on github.
+
+Finally, I did not cover other relations like comparability or
+identicality at all, because they are all variants of assignability.
