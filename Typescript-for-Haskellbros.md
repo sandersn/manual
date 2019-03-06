@@ -38,6 +38,10 @@ You know what? This section is so tiring. Go read about these types on their own
 
 # Advanced types that are not in Typescript
 
+- Pattern matching
+- Special syntax for the Maybe monad
+- Special syntax for the List monad
+- Lists at all
 - Higher-kinded types
 
-So don't try to wrute any monads.
+So don't try to write any monads!
