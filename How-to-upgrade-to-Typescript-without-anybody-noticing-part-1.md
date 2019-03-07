@@ -25,7 +25,8 @@ Let's use
 [typescript-eslint-parser](https://github.com/eslint/typescript-eslint-parser)
 as an example package so you can follow along if you want.
 Confusingly, even though the name includes "Typescript", the parser is
-actually written in Javascript.
+actually written in Javascript, although it has since been merged into
+[a larger project that is written in Typescript](https://github.com/typescript-eslint/typescript-eslint).
 
 This guide assumes that you have used Typescript enough to:
 
