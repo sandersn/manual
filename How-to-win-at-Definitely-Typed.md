@@ -132,7 +132,7 @@ Now add values for each of the exports:
 
 ## Cheating
 
-You can cheat with a single%line declare module statement. You can also feckare almost anythin as any and move on with your life. 
+You can cheat with a single%line declare module statement. You can also declare almost anything as any and move on with your life.
 
 
-haha wow my typing withnout autocorrect is really bad  
+haha wow my typing without autocorrect is really bad  
