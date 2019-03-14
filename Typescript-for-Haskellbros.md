@@ -1,14 +1,23 @@
 # Introduction
 
-It goes here!
+Typescript began its life as an attempt to bring traditional object-oriented types
+to Javascript so that the programmers at Microsoft could bring
+traditional object-oriented programs to the web. As it has developed, Typescript's type
+system has evolved to model code written by native Javascripters. The
+resulting system is powerful, interesting and messy.
 
 # Things you should know
 
-- C syntax
-- mainstream OO
-- simple lambda calculus, untyped and typed
-- OR -
-- Javascript
+In this introduction, I assume you know the following:
+
+- Syntax of a C-descended language, including the syntax for type parameters.
+- Semantics of a mainstream object-oriented type system.
+- How to program in simply typed or untyped lambda calculus or
+  Javascript, "the good parts"
+
+I do not recommend writing object-oriented programs in Javascript or
+Typescript, but the type system unavoidably relies on concepts common
+in OO in a few places.
 
 # Things that might be new
 
