@@ -88,7 +88,7 @@ popular.
 
 Notes:
 
-1. Function syntax includes parameter names. This is pretty weird!
+1. Function syntax includes parameter names. This is pretty hard to get used to!
 
     ```ts
     let fst: (a: any, d: any) => any = (a,d) => a;
@@ -113,9 +113,10 @@ Notes:
 `undefined`.
 4. This means that the top type, `unknown` is almost the same as
 `{} | null | undefined`. More on that later.
-5. `T[]` is a subtype of `Array`.
-6. `[T, T]` is a subtype of `Array`, as well as a subtype of `T[]`. This is different, and much less safe, than Haskell.
-7. `(t: T) => U` is a subtype of `Function`.
+5. Even more confusingly, any object type with a property is a subtype of `object`, which is a subtype of `{}`.
+6. `T[]` is a subtype of `Array`.
+7. `[T, T]` is a subtype of `Array`, as well as a subtype of `T[]`. This is different, and much less safe, than Haskell.
+8. `(t: T) => U` is a subtype of `Function`.
 
 ### Apparent/boxed types
 
@@ -149,23 +150,56 @@ To get an error when Typescript produces an `any`, use `"noImplicitAny": true`, 
 
 ## Structural typing
 
-Structural typing is 
+Structural typing is a familiar concept to most functional programmers, although Haskell and most MLs are not actually structurally typed. Its basic form is pretty simple:
 
-### built-in relations
+```ts
+let o: { x: string } = { x: "hi", extra: 1 }; // ok
+let o2: { x: string } = o; // ok
+```
 
-* undefined, void, [missing]
-* object, {}, { a: number }
+That is, object literals construct a matching literal type. That object literal type is assignable to some other object type as long as it has all the required properties and those properties have assignable types.
+
+This is true for named types as well; for assignability purposes there's no difference between the type alias `One` and the interface type `Two`. They both have a property `p: string`. (The behaviour with respect to recursive definitions and type parameters is slightly different, however.)
+
+```ts
+type One = { p: string };
+interface Two { p: string };
+class Three { p = "Hello" };
+
+let x: One = { p: 'hi' };
+let two: Two = x;
+two = new Three();
+```
 
 ## Unit types
+
 ## merging
 
 And now for something completely different.
-The Typescript binder
 
-# Things that are like Haskell/ML
+The Typescript binder is designed to work with multiple script files from an HTML file. To make this work, it allows multiple declarations of some constructs. These mutiple declarations merge. For example
 
-But different. Usually worse. 
+```ts
+interface I {
+    x: number;
+}
+interface I {
+    y: number;
+}
+```
 
+is equivalent to
+
+```ts
+interface I {
+    x: number;
+    y: number;
+}
+```
+
+# Things that look like Haskell, but aren't
+
+## Contextual typing
 - contextual typing
   - is a *little* bit like HM
 - untagged unions
@@ -177,6 +211,7 @@ But different. Usually worse.
   - note which types are irregular (null and function, to wit)
 - ad-hoc replacements for The Popular Monads
 - modules
+- function types are named
 - readonly and const
   - You Will Be Sad after this
 
