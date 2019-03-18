@@ -200,10 +200,80 @@ interface I {
 # Things that look like Haskell, but aren't
 
 ## Contextual typing
-- contextual typing
-  - is a *little* bit like HM
-- untagged unions
-- discriminated unions
+
+Typescript has some obvious places where it can infer types, like variable declarations:
+
+```ts
+let s = "I'm a string!"
+```
+
+But it also infers types in a few other places that you may not expect if you've worked with other C-syntax languages:
+
+```ts
+// functions
+[1,2,3].map(n => n) // n: number
+```
+
+Here `n: number`, as determined by the type of `Array<number>.map`. However, contextually typed lambdas can participate usefully in calls where the type parameters must still be inferred:
+
+```ts
+declare function map<T, U>(f: (t: T) => U, ts: T[]): U[];
+let sns = map(n => n.toString(), [1,2,3]);
+```
+
+`n: number` in this example also, despite the fact that `T` and `U` have not been inferred before the call. In fact, after `[1,2,3]` has been used to infer `T=number`, the return type of `n => n.toString()` is used to infer `U=string`, causing `sns` to have the type `string[]`.
+
+Note that inference will work in any order, but intellisense will only work left-to-right, so Typescript prefers to declare `map` with the array first:
+
+```ts
+declare function map<T, U>(ts: T[], f: (t: T) => U): U[];
+```
+
+Contextual typing also works recursively through object literals, and on unit types that would otherwise be inferred as `string` or `number`. Altogether, this feature can make Typescript's inference look a bit like unifying type inference engine, but it is not.
+
+## Type aliases
+
+Type aliases are mere aliases, just like `type` in Haskell, but unlike `newtype` or `data`. The compiler will attempt to use the alias name wherever it was used in the source code, but does not always succeed.
+
+The closest equivalent to `newtype` is a *tagged intersection*:
+
+```ts
+type FString = string & { __compileTimeOnly: any }
+```
+
+An `FString` is just like a normal string, except that the compiler thinks it has a property named `__compileTimeOnly` that doesn't actually exist. This means that `FString` can still be assigned to `string`, but not the other way round.
+
+The closest equivalent to `data` is a union of types with discriminant properties.
+
+## Unions
+
+In Typescript, union types are untagged. In other words, they do not generate discriminated unions like `data` does in Haskell. However, you can often discriminate types in a union using built-in tags or other properties.
+
+```ts
+function lol(arg: string | string[] | () => string | { s: string }): string {
+    // this is super common in Javascript
+    if (typeof arg === 'string') {
+        return commonCase(arg);
+    }
+    else if (Array.isArray(arg)) {
+        return arg.map(commonCase).join(",");
+    }
+    else if (typeof arg === 'function') {
+        return commonCase(arg());
+    }
+    else {
+        return commonCase(arg.s);
+    }
+
+    function commonCase(s: string): string {
+        // finally, just convert a string to another string
+    }
+}
+```
+
+`string`, `Array` and `Function` have built-in type predicates, conveniently leaving the object type for the `else` branch. It is possible, however, to generate unions that are difficult to differentiate at runtime. For new code, it's best to build only discriminated unions.
+
+## Discriminated Unions
 - type parameters
   - constraints are a *little* bit like typeclasses
 - type aliases
