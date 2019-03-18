@@ -123,7 +123,27 @@ Javascript has boxed equivalents of primitive types that contain the methods tha
 
 ## Gradual typing
 
-Typescript uses the type `any` whenever it can't tell what the type of an expression should be. Actually, calling `any` a type is an overstatement. It mostly just turns off the type checker wherever it appears. It is contagious, too &mdash; if you initialise a variable with an expression of type `any`, the variable has type `any` too.
+Typescript uses the type `any` whenever it can't tell what the type of an expression should be. Compared to `Dynamic`, calling `any` a type is an overstatement. It mostly just turns off the type checker wherever it appears. For example, you can push anything into an `any[]` without marking it in any way:
+
+```ts
+// with "noImplicitAny": false in tsconfig.json, anys: any[]
+const anys = [];
+anys.push(1);
+anys.push("oh no");
+anys.push({ anything: "goes" });
+```
+
+And you can use an expression of type `any` anywhere:
+
+```ts
+anys.map(anys[1]); // oh no, "oh no" is not a function
+```
+
+It is contagious, too &mdash; if you initialise a variable with an expression of type `any`, the variable has type `any` too. 
+
+```ts
+let sepsis = anys[0] + anys[1]; // this could mean anything
+```
 
 To get an error when Typescript produces an `any`, use `"noImplicitAny": true`, or `"strict": true`.
 
