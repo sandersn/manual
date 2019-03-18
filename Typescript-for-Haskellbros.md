@@ -40,32 +40,32 @@ object-oriented type system", so just read section III of
 
 Javascript defines 7 built-in types:
 
-* Number - a double-precision IEEE 754 floating point.
-* String - an immutable 16-bit string.
-* Boolean - `true` and `false`.
-* Symbol - a unique value usually used as a key.
-* Null - equivalent to the unit type.
-* Undefined - also equivalent to the unit type.
-* Object - similar to records.
+* `Number` - a double-precision IEEE 754 floating point.
+* `String` - an immutable 16-bit string.
+* `Boolean` - `true` and `false`.
+* `Symbol` - a unique value usually used as a key.
+* `Null` - equivalent to the unit type.
+* `Undefined` - also equivalent to the unit type.
+* `Object` - similar to records.
 
 [See the MDN page for more detail](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures).
 
 Notes:
 
-1. Really, the only built-in numbers are floating points.
+1. I'm not joking. The only built-in numbers are floating points.
 2. `Symbol('foo') !== Symbol('foo')`, so symbols are not like Lisp or Ruby atoms.
 3. You can think of Javascript as a hasty copy of Scheme and you'd be nearly right.
-4. Except the inanely detailed implementation of object orientation, which you should avoid.
+4. Except for the inanely detailed implementation of object orientation, which you should avoid.
 
-Typescript has corresponding types for the built-in types:
+Typescript has corresponding primitive types for the built-in types:
 
-* number
-* string
-* boolean
-* symbol
-* null
-* undefined
-* object
+* `number`
+* `string`
+* `boolean`
+* `symbol`
+* `null`
+* `undefined`
+* `object`
 
 Notes:
 
@@ -77,54 +77,59 @@ popular.
 
 ### Other important types
 
-* unknown - the top type.
-* never - the bottom type.
-* void - a subtype of `undefined` reserved for use by C programmers as a return type.
-* {} - the smallest non-null, non-undefined type.
-* object literal type - eg { p: T }
-* Array - mutable arrays
-* tuples - Uses square brackets: `[number, number]` because they are really just arrays.
-* Function - all functions, even dynamically evaluated ones
+* `unknown` - the top type.
+* `never` - the bottom type.
+* `void` - a subtype of `undefined` intended for use by C programmers as a return type.
+* `{}` - the smallest non-null, non-undefined type.
+* object literal type - eg `{ property: Type }`
+* `Array` - mutable arrays
+* `tuples` - `[number, number]` - a subtype of arrays.
+* `Function` - all functions, even dynamically evaluated ones
 
 Notes:
 
-1. Confusingly, `{}` is the supertype of not only `object`, but also
-`number`, `string` etc. Basically everything except `null` and
+1. Function syntax includes parameter names. This is pretty weird!
+
+    ```ts
+    let fst: (a: any, d: any) => any = (a,d) => a;
+    // or more accurately:
+    let snd: <T, U>(a: T, d: U) => U` = (a,d) => d.
+    ```
+
+2. Object type syntax closely mirrors value syntax:
+
+    ```ts
+    let o: { n: number, xs: object[] } = { n: 1, xs: [] }
+    ```
+
+    Remember that objects are mutable!
+
+    ```ts
+    let o: { a: readonly number, xs: readonly object[] } = { n: 1, xs: [] }
+    ```
+
+3. Confusingly, `{}` is the supertype of not only `object`, but also
+`number`, `string` etc. Actually, everything except `null` and
 `undefined`.
-2. This means that the top type, `unknown` is almost the same as
+4. This means that the top type, `unknown` is almost the same as
 `{} | null | undefined`. More on that later.
-2. `T[]` is a subtype of Array.
-3. `[T, T]` is a subtype of Array and `T[]`.
-4. Any particular arrow is a subtype of Function.
-5. Function syntax includes parameter names. This is pretty weird!
-
-```ts
-let fst: (a: any, d: any) => any = (a,d) => a;
-// or more accurately:
-let snd: <T, U>(a: T, d: U) => U` = (a,d) => d.
-```
-
-6. Object type syntax closely mirrors value syntax:
-
-```ts
-let o: { n: number, xs: object[] } = { n: 1, xs: [] }
-```
-
-Remember that objects are mutable!
-
-```ts
-let o: { a: readonly number, xs: readonly object[] } = { n: 1, xs: [] }
-```
+5. `T[]` is a subtype of `Array`.
+6. `[T, T]` is a subtype of `Array`, as well as a subtype of `T[]`. This is different, and much less safe, than Haskell.
+7. `(t: T) => U` is a subtype of `Function`.
 
 ### Apparent/boxed types
 
-* eg number and Number
+Javascript has boxed equivalents of primitive types that contain the methods that programmers associate with those types. Typescript reflects this with, for example, the difference between the primitive type `number` and the boxed type `Number`.
 
 ## Gradual typing
 
-any!
+Typescript uses the type `any` whenever it can't tell what the type of an expression should be. Actually, calling `any` a type is an overstatement. It mostly just turns off the type checker wherever it appears. It is contagious, too &mdash; if you initialise a variable with an expression of type `any`, the variable has type `any` too.
+
+To get an error when Typescript produces an `any`, use `"noImplicitAny": true`, or `"strict": true`.
 
 ## Structural typing
+
+Structural typing is 
 
 ### built-in relations
 
