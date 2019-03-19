@@ -56,7 +56,7 @@
     - Ask the PR author to contact the owners themselves, perhaps by pinging them on github.
     - You can make exceptions for extremely small changes to packages that aren't react or node.
 - Technical
-  - The technical part of the review is almost entirely structural.
+  - The technical part of the review is entirely structural, and applies mostly to new reviews.
   - We only check whether the PR has
     1. An allowed module structure.
        - https://www.typescriptlang.org/docs/handbook/declaration-files/library-structures.html
