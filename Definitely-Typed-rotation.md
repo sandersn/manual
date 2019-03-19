@@ -51,17 +51,40 @@
       - In that case, you should give your narrow technical opinon -- "this is cool, and the types seem correct/not too slow"
       - Then explicitly delegate the rest to the owners -- "does this look like a correct change based on the source package?".
   - *Other*
-    - Treat unpopular packages whose owner doesn't review just like Already-approved ones.
+    - Treat unpopular packages whose owner doesn't review just like Already-Approved ones.
     - Popular packages with no reviews should not change.
     - Ask the PR author to contact the owners themselves, perhaps by pinging them on github.
-    - You can make exceptions for extremely small changes to packages that don't seem THAT popular.
-    - For example, they're popular, but have a really dumb name.
+    - You can make exceptions for extremely small changes to packages that aren't react or node.
 - Technical
   - The technical part of the review is almost entirely structural.
-  - We only check whether the PR used an allowed module structure.
+  - We only check whether the PR has
+    1. An allowed module structure.
+       - https://www.typescriptlang.org/docs/handbook/declaration-files/library-structures.html
+       - Briefly:
+         1. Global -- no exports, no need for imports.
+         2. Commonjs -- one export, with `export = value`, imported with `import x = require('x')`
+         3. ES2015 -- multiple exports, imported with `import { a, b, c } from 'x'`
+         4. UMD -- (2), but with `export as namespace x` too. Can be used with or without import.
+         5. ES2015 default -- `export default value`, almost always wrong.
+    2. No overrides in tslint.json.
+    3. Correct strictness settings in tsconfig.json:
+       - noImplicitAny, noImplicitThis, strictNullChecks, strictFunctionTypes should all be true.
+       - Or just "strict": true (allowed since January 2019)
+  - Everything else is checked by CI, unless tslint.json has overrides to turn off certain rules.
+
 
 ## Tips
 
+- Read the instructions we give authors:
+  - Editing an existing package (with common mistakes): https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/README.md#edit-an-existing-package
+  - Module red flags: https://www.typescriptlang.org/docs/handbook/modules.html#red-flags
 - Use unpkg to look at shipped code.
+  - https://unpkg.com/package-name will give you the latest version's main source file
+  - https://unpkg.com/package-name@9.9.99 will give you a particular version
+  - https://unpkg.com/package-name/bin/index.js will give you a particular file
+  - https://unpkg.com/package-name/bin/ will give you a directory listing
 - Use npmjs to determine popularity.
+  - Look on the right side for the "weekly downloads number"
 - Use project filters to do oldest first.
+  - In the "Filter cards" box, type "338" to see PRs that start with 338
+  - Then move on to 339, 340, etc.
