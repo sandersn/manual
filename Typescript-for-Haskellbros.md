@@ -8,7 +8,9 @@ resulting system is powerful, interesting and messy.
 
 This introduction is designed for working Haskell or ML programmers
 who want to learn Typescript. It describes how the type system of
-Typescript differs from Haskell's type system.
+Typescript differs from Haskell's type system. It also describes
+unique features of Typescript's type system that arise from its
+modelling of Javascript code.
 
 # Things you should know
 
@@ -120,11 +122,18 @@ Notes:
 
 ### Apparent/boxed types
 
-Javascript has boxed equivalents of primitive types that contain the methods that programmers associate with those types. Typescript reflects this with, for example, the difference between the primitive type `number` and the boxed type `Number`.
+Javascript has boxed equivalents of primitive types that contain the
+methods that programmers associate with those types. Typescript
+reflects this with, for example, the difference between the primitive
+type `number` and the boxed type `Number`.
 
 ## Gradual typing
 
-Typescript uses the type `any` whenever it can't tell what the type of an expression should be. Compared to `Dynamic`, calling `any` a type is an overstatement. It mostly just turns off the type checker wherever it appears. For example, you can push anything into an `any[]` without marking it in any way:
+Typescript uses the type `any` whenever it can't tell what the type of
+an expression should be. Compared to `Dynamic`, calling `any` a type
+is an overstatement. It mostly just turns off the type checker
+wherever it appears. For example, you can push anything into an
+`any[]` without marking it in any way:
 
 ```ts
 // with "noImplicitAny": false in tsconfig.json, anys: any[]
@@ -140,7 +149,8 @@ And you can use an expression of type `any` anywhere:
 anys.map(anys[1]); // oh no, "oh no" is not a function
 ```
 
-It is contagious, too &mdash; if you initialise a variable with an expression of type `any`, the variable has type `any` too. 
+It is contagious, too &mdash; if you initialise a variable with an
+expression of type `any`, the variable has type `any` too.
 
 ```ts
 let sepsis = anys[0] + anys[1]; // this could mean anything
@@ -150,16 +160,25 @@ To get an error when Typescript produces an `any`, use `"noImplicitAny": true`, 
 
 ## Structural typing
 
-Structural typing is a familiar concept to most functional programmers, although Haskell and most MLs are not actually structurally typed. Its basic form is pretty simple:
+Structural typing is a familiar concept to most functional
+programmers, although Haskell and most MLs are not actually
+structurally typed. Its basic form is pretty simple:
 
 ```ts
 let o: { x: string } = { x: "hi", extra: 1 }; // ok
 let o2: { x: string } = o; // ok
 ```
 
-That is, object literals construct a matching literal type. That object literal type is assignable to some other object type as long as it has all the required properties and those properties have assignable types.
+That is, object literals construct a matching literal type. That
+object literal type is assignable to some other object type as long as
+it has all the required properties and those properties have
+assignable types.
 
-This is true for named types as well; for assignability purposes there's no difference between the type alias `One` and the interface type `Two`. They both have a property `p: string`. (The behaviour with respect to recursive definitions and type parameters is slightly different, however.)
+This is true for named types as well; for assignability purposes
+there's no difference between the type alias `One` and the interface
+type `Two`. They both have a property `p: string`. (The behaviour with
+respect to recursive definitions and type parameters is slightly
+different, however.)
 
 ```ts
 type One = { p: string };
@@ -171,79 +190,46 @@ let two: Two = x;
 two = new Three();
 ```
 
-## Unit types
-
-## merging
+## Merging
 
 And now for something completely different.
 
-The Typescript binder is designed to work with multiple script files from an HTML file. To make this work, it allows multiple declarations of some constructs. These mutiple declarations merge. For example
+Typescript tries to provide types for Javascript values, but,
+especially early in its life, the number of type constructors it had
+was limited, and usually based on OO. To increase the expressivity of
+this system, Typescript merges structures of different kinds that have
+the same name. Programmers can combine structures to represent a
+single Javascript value with multiple Typescript types.
+
+For example, you can represent a function that also has properties, or
+nested types:
 
 ```ts
-interface I {
-    x: number;
+function pad(s: string, n: number, char: string, direction: pad.Direction) {
 }
-interface I {
-    y: number;
+namespace pad {
+    export type Direction = "left" | "right";
+    export const space = " ";
+    export const tab = "\t";
+    export const dot = ".";
+}
+pad('hi', 10, pad.dot, "left");
+```
+
+You merge any two things that will not collide. This works across
+files too:
+
+```ts
+// @Filename: main.ts
+interface Main {
+    // lots of properties here
+}
+
+// @Filename: extra.ts
+interface Main {
+    extra: boolean;
 }
 ```
-
-is equivalent to
-
-```ts
-interface I {
-    x: number;
-    y: number;
-}
-```
-
-# Things that look like Haskell, but aren't
-
-## Contextual typing
-
-Typescript has some obvious places where it can infer types, like variable declarations:
-
-```ts
-let s = "I'm a string!"
-```
-
-But it also infers types in a few other places that you may not expect if you've worked with other C-syntax languages:
-
-```ts
-// functions
-[1,2,3].map(n => n) // n: number
-```
-
-Here `n: number`, as determined by the type of `Array<number>.map`. However, contextually typed lambdas can participate usefully in calls where the type parameters must still be inferred:
-
-```ts
-declare function map<T, U>(f: (t: T) => U, ts: T[]): U[];
-let sns = map(n => n.toString(), [1,2,3]);
-```
-
-`n: number` in this example also, despite the fact that `T` and `U` have not been inferred before the call. In fact, after `[1,2,3]` has been used to infer `T=number`, the return type of `n => n.toString()` is used to infer `U=string`, causing `sns` to have the type `string[]`.
-
-Note that inference will work in any order, but intellisense will only work left-to-right, so Typescript prefers to declare `map` with the array first:
-
-```ts
-declare function map<T, U>(ts: T[], f: (t: T) => U): U[];
-```
-
-Contextual typing also works recursively through object literals, and on unit types that would otherwise be inferred as `string` or `number`. Altogether, this feature can make Typescript's inference look a bit like unifying type inference engine, but it is not.
-
-## Type aliases
-
-Type aliases are mere aliases, just like `type` in Haskell, but unlike `newtype` or `data`. The compiler will attempt to use the alias name wherever it was used in the source code, but does not always succeed.
-
-The closest equivalent to `newtype` is a *tagged intersection*:
-
-```ts
-type FString = string & { __compileTimeOnly: any }
-```
-
-An `FString` is just like a normal string, except that the compiler thinks it has a property named `__compileTimeOnly` that doesn't actually exist. This means that `FString` can still be assigned to `string`, but not the other way round.
-
-The closest equivalent to `data` is a union of types with discriminant properties.
 
 ## Unions
 
@@ -273,7 +259,100 @@ function lol(arg: string | string[] | () => string | { s: string }): string {
 
 `string`, `Array` and `Function` have built-in type predicates, conveniently leaving the object type for the `else` branch. It is possible, however, to generate unions that are difficult to differentiate at runtime. For new code, it's best to build only discriminated unions.
 
+
+## Unit types
+
+Unit types are subtypes of primitive types that contain exactly one
+primitive value. For example, the string `"foo"` has the type
+`"foo"`. Since Javascript has no built-in enums, it is common to use a set of
+well-known strings instead. Unions of string literal types allow
+Typescript to type this pattern:
+
+```ts
+declare function pad(s: string, n: number, direction: "left" | "right"): string;
+pad("hi", 10, "left");
+```
+When needed, the compiler *widens* &mdash; converts to a
+supertype &mdash; the unit type to the primitive type, such as `"foo"`
+to `string`. However, it make some usages difficult:
+
+```ts
+let s = "right";
+pad("hi", 10, s);
+```
+
+Here, `"right": "right"` but `"right"` widens to `string` because
+`let` declares a mutable variable. This means that `s: string`, and
+`string` is not assignable to `"left" | "right"` because it could have
+some other type, like `"chips"`. You'll have to explicitly declare the
+type of `s` to be `"left" | "right"`.
+
+# Things that look like Haskell, but aren't
+
+## Contextual typing
+
+Typescript has some obvious places where it can infer types, like
+variable declarations:
+
+```ts
+let s = "I'm a string!"
+```
+
+But it also infers types in a few other places that you may not expect
+if you've worked with other C-syntax languages:
+
+```ts
+// functions
+[1,2,3].map(n => n) // n: number
+```
+
+Here `n: number`, as determined by the type of `Array<number>.map`.
+However, contextually typed lambdas can participate usefully in calls
+where the type parameters must still be inferred:
+
+```ts
+declare function map<T, U>(f: (t: T) => U, ts: T[]): U[];
+let sns = map(n => n.toString(), [1,2,3]);
+```
+
+`n: number` in this example also, despite the fact that `T` and `U`
+have not been inferred before the call. In fact, after `[1,2,3]` has
+been used to infer `T=number`, the return type of `n => n.toString()`
+is used to infer `U=string`, causing `sns` to have the type
+`string[]`.
+
+Note that inference will work in any order, but intellisense will only
+work left-to-right, so Typescript prefers to declare `map` with the
+array first:
+
+```ts
+declare function map<T, U>(ts: T[], f: (t: T) => U): U[];
+```
+
+Contextual typing also works recursively through object literals, and
+on unit types that would otherwise be inferred as `string` or
+`number`. Altogether, this feature can make Typescript's inference
+look a bit like unifying type inference engine, but it is not.
+
+## Type aliases
+
+Type aliases are mere aliases, just like `type` in Haskell, but unlike
+`newtype` or `data`. The compiler will attempt to use the alias name
+wherever it was used in the source code, but does not always succeed.
+
+The closest equivalent to `newtype` is a *tagged intersection*:
+
+```ts
+type FString = string & { __compileTimeOnly: any }
+```
+
+An `FString` is just like a normal string, except that the compiler thinks it has a property named `__compileTimeOnly` that doesn't actually exist. This means that `FString` can still be assigned to `string`, but not the other way round.
+
+The closest equivalent to `data` is a union of types with discriminant properties.
+
 ## Discriminated Unions
+
+
 - type parameters
   - constraints are a *little* bit like typeclasses
 - type aliases
