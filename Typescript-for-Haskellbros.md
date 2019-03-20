@@ -348,10 +348,52 @@ type FString = string & { __compileTimeOnly: any }
 
 An `FString` is just like a normal string, except that the compiler thinks it has a property named `__compileTimeOnly` that doesn't actually exist. This means that `FString` can still be assigned to `string`, but not the other way round.
 
-The closest equivalent to `data` is a union of types with discriminant properties.
-
 ## Discriminated Unions
 
+The closest equivalent to `data` is a union of types with discriminant
+properties, normally called discriminated unions in Typescript:
+
+```ts
+type Shape =
+  | { kind: "circle", radius: number }
+  | { kind: "square", x: number }
+  | { kind: "triangle", x: number, y: number }
+```
+
+Unlike Haskell, the tag, or discriminant, is just a property in each
+object type. Each variant has an identical property with a different
+unit type. Also, this is still a normal union type; the leading `|` is
+an optional part of the union type syntax. You can discriminate the
+members of the union using normal Javascript code:
+
+```ts
+function area(s: Shape) {
+    if (s.kind === "circle") {
+        return Math.PI * s.radius * s.radius;
+    }
+    else if (s.kind === "square") {
+        return s.x * s.x;
+    }
+    else {
+        return s.x * s.y / 2;
+    }
+}
+```
+
+Also unlike Haskell, common properties show up in any union, so you
+usefully discriminate multiple members of the union:
+
+```ts
+function height(s: Shape) {
+    if (s.kind === "circle") {
+        return 2 * s.radius;
+    }
+    else {
+        // s.kind: "square" | "triangle"
+        return s.x;
+    }
+}
+```
 
 - type parameters
   - constraints are a *little* bit like typeclasses
