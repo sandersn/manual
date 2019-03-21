@@ -229,6 +229,31 @@ interface Main {
 }
 ```
 
+## Ambient declarations
+
+It may be necessary to declare that some Javascript value exists, even
+though Typescript doesn't know about it. The declarations are called
+"ambient declarations":
+
+```ts
+interface JQuery {
+    // types here!
+}
+declare var $: JQuery;
+```
+
+This is also useful for modules:
+
+```ts
+declare module "jquery" {
+  interface JQuery {
+      // types here!
+  }
+  declare var $: JQuery;
+  export = $;
+}
+```
+
 ## Unions
 
 In Typescript, union types are untagged. In other words, they do not
@@ -560,20 +585,3 @@ a[0] = 101;
 
 However, none of these options are the default, so they are not
 consistently used in Typescript code.
-
-# Advanced types that are Javascript's fault
-
-- declare/ambient syntax
-- Mapped types
-
-You know what? This section is so tiring. Go read about these types on their own pages.
-
-# Advanced types that are not in Typescript
-
-- Pattern matching
-- Special syntax for the Maybe monad
-- Special syntax for the List monad
-- Lists at all
-- Higher-kinded types
-
-So don't try to write any monads!
