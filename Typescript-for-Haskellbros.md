@@ -12,7 +12,7 @@ Typescript differs from Haskell's type system. It also describes
 unique features of Typescript's type system that arise from its
 modelling of Javascript code.
 
-# Things you should know
+# Prerequisites
 
 In this introduction, I assume you know the following:
 
@@ -26,17 +26,15 @@ You may be able to skip the book if you know how to write programs in
 a call-by-value lexically scoped language with lots of mutability and
 not much else.
 
-I guess
 [The C++ Programming Language](http://www.stroustrup.com/4th.html) is
-a good place to learn about C-style type syntax. Unlike earlier C-like
-syntaxes, Typescript uses postfix types, like so: `x: string` instead
+a good place to learn about C-style type syntax. Unlike C++, Typescript uses postfix types, like so: `x: string` instead
 of `string x`.
 
 I don't know a single place to learn the mushy concept of "mainstream
 object-oriented type system", so just read section III of
 [Types and Programming Languages](https://www.cis.upenn.edu/~bcpierce/tapl/).
 
-# Things that might be new
+# Concepts not in Haskell
 
 ## Built-in types
 
@@ -233,7 +231,10 @@ interface Main {
 
 ## Unions
 
-In Typescript, union types are untagged. In other words, they do not generate discriminated unions like `data` does in Haskell. However, you can often discriminate types in a union using built-in tags or other properties.
+In Typescript, union types are untagged. In other words, they do not
+generate discriminated unions like `data` does in Haskell. However,
+you can often discriminate types in a union using built-in tags or
+other properties.
 
 ```ts
 function lol(arg: string | string[] | () => string | { s: string }): string {
@@ -257,8 +258,28 @@ function lol(arg: string | string[] | () => string | { s: string }): string {
 }
 ```
 
-`string`, `Array` and `Function` have built-in type predicates, conveniently leaving the object type for the `else` branch. It is possible, however, to generate unions that are difficult to differentiate at runtime. For new code, it's best to build only discriminated unions.
+`string`, `Array` and `Function` have built-in type predicates,
+conveniently leaving the object type for the `else` branch. It is
+possible, however, to generate unions that are difficult to
+differentiate at runtime. For new code, it's best to build only
+discriminated unions.
 
+The following types have built-in predicates:
+
+Type      | Predicate
+----------|-----------
+string    | `typeof s === "string"`
+number    | `typeof n === "number"`
+bigint    | `typeof m === "bigint"`
+boolean   | `typeof b === "boolean"`
+symbol    | `typeof g === "symbol"`
+undefined | `typeof undefined === "undefined"`
+function  | `typeof f === "function"`
+array     | `Array.isArray(a)`
+object    | `typeof o === "object"`
+
+Note that functions and arrays are technically objects, but still have
+their own predicates.
 
 ## Unit types
 
@@ -287,7 +308,7 @@ Here, `"right": "right"` but `"right"` widens to `string` because
 some other type, like `"chips"`. You'll have to explicitly declare the
 type of `s` to be `"left" | "right"`.
 
-# Things that look like Haskell, but aren't
+# Concepts similar to Haskell
 
 ## Contextual typing
 
@@ -336,9 +357,14 @@ look a bit like unifying type inference engine, but it is not.
 
 ## Type aliases
 
-Type aliases are mere aliases, just like `type` in Haskell, but unlike
-`newtype` or `data`. The compiler will attempt to use the alias name
-wherever it was used in the source code, but does not always succeed.
+Type aliases are mere aliases, just like `type` in Haskell. The
+compiler will attempt to use the alias name wherever it was used in
+the source code, but does not always succeed.
+
+```ts
+type Size = [number, number];
+let x: Size = [101.1, 999.9];
+```
 
 The closest equivalent to `newtype` is a *tagged intersection*:
 
@@ -346,7 +372,10 @@ The closest equivalent to `newtype` is a *tagged intersection*:
 type FString = string & { __compileTimeOnly: any }
 ```
 
-An `FString` is just like a normal string, except that the compiler thinks it has a property named `__compileTimeOnly` that doesn't actually exist. This means that `FString` can still be assigned to `string`, but not the other way round.
+An `FString` is just like a normal string, except that the compiler
+thinks it has a property named `__compileTimeOnly` that doesn't
+actually exist. This means that `FString` can still be assigned to
+`string`, but not the other way round.
 
 ## Discriminated Unions
 
@@ -395,16 +424,142 @@ function height(s: Shape) {
 }
 ```
 
-- type parameters
-  - constraints are a *little* bit like typeclasses
-- type aliases
-- tagged [unit] types
-  - note which types are irregular (null and function, to wit)
-- ad-hoc replacements for The Popular Monads
-- modules
-- function types are named
-- readonly and const
-  - You Will Be Sad after this
+## Type Parameters
+
+Like most C-descended languages, Typescript requires declaration of
+type parameters:
+
+```ts
+function liftArray<T>(t: T): Array<T> {
+    return [t];
+}
+```
+
+There is no case requirement, but the type parameters are conventionally
+single uppercase letters. Type parameters can also be constrained to a
+type, which behaves a bit like type class constraints:
+
+```ts
+function firstish<T extends { length: number }>(t1: T, t2: T): T {
+    return t1.length > t2.length ? t1 : t2;
+}
+```
+
+Because Typescript is structural, it doesn't need type parameters as
+much as nominal systems. Specifically, they are not needed to make a
+function polymorphic. Type parameters should only be used to
+*propagate* type information, such as constraining parameters to be
+the same type:
+
+```ts
+function length<T extends ArrayLike<unknown>>(t: T): number {
+}
+
+function length(t: ArrayLike<unknown>): number {
+}
+```
+
+In the first `length`, T is not necessary; notice that it's only
+referenced once, so it's not being used to constrain the type of the
+return value or other parameters.
+
+Typescript does not have higher kinded types, so the following is not legal:
+
+```ts
+function length<T extends ArrayLike<unknown>, U>(m: T<U>) {
+}
+```
+
+## Module system
+
+Javascript's modern module syntax is a bit like Haskell's:
+
+```ts
+import { value, Type } from 'npm-package'
+import { other, Types } from './local-package'
+import * as prefix from '../lib/third-package'
+```
+
+You can also import commonjs modules -- modules written using node.js'
+module system:
+
+``ts
+import f = require('single-function-package');
+```
+
+You can export with an export list:
+
+```ts
+export { f }
+
+function f() { return g() }
+function g() { } // g is not exported
+```
+
+Or by marking each export individually:
+
+```ts
+export function f { return g() }
+function g() { }
+```
+
+The latter style is more common but both are allowed, even in the same
+file.
+
+## `readonly` and `const`
+
+In Javascript, mutability is the default, although it allows variable
+declarations with `const` to declare that the *reference* is
+immutable. The referent is still mutable:
+
+```js
+const a = [1,2,3];
+a.push(102); // ):
+a[0] = 101; // D:
+```
+
+Typescript additionally has a `readonly` modifier for properties.
+
+```ts
+interface Rx {
+    readonly x: number;
+}
+let rx: Rx = { x: 1 };
+rx.x = 12; // error
+```
+
+It also ships with a mapped type `Readonly<T>` that makes
+all properties `readonly`:
+
+
+```ts
+interface X {
+    x: number;
+}
+let rx: Readonly<X> = { x: 1 };
+rx.x = 12; // error
+```
+
+And it has a specific `ReadonlyArray<T>` type that removes
+side-affecting methods and prevents writing to indices of the array:
+
+```ts
+let a: ReadonlyArray<number> = [1, 2, 3];
+a.push(102);
+a[0] = 101;
+```
+
+You can also use a const-assertion, which operates on arrays and
+object literals:
+
+```ts
+let a = [1, 2, 3] as const;
+a.push(102);
+a[0] = 101;
+```
+
+However, none of these options are the default, so they are not
+consistently used in Typescript code.
 
 # Advanced types that are Javascript's fault
 
