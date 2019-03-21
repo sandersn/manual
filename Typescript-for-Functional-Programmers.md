@@ -1,4 +1,4 @@
-# Typescript for Haskell programmers
+# Typescript for Functional Programmers
 
 Typescript began its life as an attempt to bring traditional object-oriented types
 to Javascript so that the programmers at Microsoft could bring

@@ -21,6 +21,7 @@ Posts:
  * [Workarounds for Out of Memory Crashes](Workarounds-for-Out-of-Memory-Crashes.md)
  * [Checker reduction plan](Checker-reduction-plan.md)
  * [What Definitely Not To Do To Definitely Typed To Do Well](Definitely-Typed-rotation.md)
+ * [Typescript for Functional Programmers](Typescript-for-Functional-Programmers.md)
 
 
  * [How to upgrade to Typescript without anybody noticing](How-to-upgrade-to-Typescript-without-anybody-noticing.md)
