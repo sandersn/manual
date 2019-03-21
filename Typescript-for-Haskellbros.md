@@ -306,6 +306,18 @@ object    | `typeof o === "object"`
 Note that functions and arrays are technically objects, but still have
 their own predicates.
 
+### Intersections
+
+In addition to unions, Typescript also has intersections:
+
+```ts
+type Combined = { a: number } & { b: string }
+type Conflicting = { a: number } & { a: string }
+```
+
+Intersection and union are recursive in case of conflicts, so
+`Conflicting.a : number & string`.
+
 ## Unit types
 
 Unit types are subtypes of primitive types that contain exactly one
@@ -585,3 +597,11 @@ a[0] = 101;
 
 However, none of these options are the default, so they are not
 consistently used in Typescript code.
+
+# Further reading
+
+TODO: Put links to the rest of the handbook here.
+
+* Mapped types
+* Index types and keyof types
+* Conditional types
