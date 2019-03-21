@@ -40,13 +40,15 @@ object-oriented type system", so just read section III of
 
 Javascript defines 7 built-in types:
 
-* `Number` - a double-precision IEEE 754 floating point.
-* `String` - an immutable 16-bit string.
-* `Boolean` - `true` and `false`.
-* `Symbol` - a unique value usually used as a key.
-* `Null` - equivalent to the unit type.
-* `Undefined` - also equivalent to the unit type.
-* `Object` - similar to records.
+Type        | Explanation
+------------|-----------
+`Number`    | a double-precision IEEE 754 floating point.
+`String`    | an immutable 16-bit string.
+`Boolean`   | `true` and `false`.
+`Symbol`    | a unique value usually used as a key.
+`Null`      | equivalent to the unit type.
+`Undefined` | also equivalent to the unit type.
+`Object`    | similar to records.
 
 [See the MDN page for more detail](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures).
 
@@ -77,14 +79,16 @@ popular.
 
 ### Other important types
 
-* `unknown` - the top type.
-* `never` - the bottom type.
-* `void` - a subtype of `undefined` intended for use by C programmers as a return type.
-* `{}` - the smallest non-null, non-undefined type.
-* object literal type - eg `{ property: Type }`
-* `Array` - mutable arrays
-* `tuples` - `[number, number]` - a subtype of arrays.
-* `Function` - all functions, even dynamically evaluated ones
+Type        | Explanation
+------------|-----------
+`unknown` | the top type.
+`never` | the bottom type.
+`{}` | the smallest non-null, non-undefined type.
+object literal | eg `{ property: Type }`
+`void` | a subtype of `undefined` intended for use by C programmers as a return type.
+`T[]` | mutable arrays, also written `Array<T>`
+`[T,T]` | tuples
+`Function` | all functions, even dynamically evaluated ones
 
 Notes:
 
@@ -93,30 +97,28 @@ Notes:
     ```ts
     let fst: (a: any, d: any) => any = (a,d) => a;
     // or more accurately:
-    let snd: <T, U>(a: T, d: U) => U` = (a,d) => d.
+    let snd: <T, U>(a: T, d: U) => U = (a,d) => d.
     ```
 
-2. Object type syntax closely mirrors value syntax:
+2. Object literal type syntax closely mirrors object literal value syntax:
 
     ```ts
     let o: { n: number, xs: object[] } = { n: 1, xs: [] }
     ```
 
-    Remember that objects are mutable!
+3. Confusingly, `{}` is the supertype of not only `object`, but
+everything except `null` and `undefined`.
 
-    ```ts
-    let o: { a: readonly number, xs: readonly object[] } = { n: 1, xs: [] }
-    ```
+4. This means that the top type, `unknown`, is almost the same as
+`{} | null | undefined`.
 
-3. Confusingly, `{}` is the supertype of not only `object`, but also
-`number`, `string` etc. Actually, everything except `null` and
-`undefined`.
-4. This means that the top type, `unknown` is almost the same as
-`{} | null | undefined`. More on that later.
 5. Even more confusingly, any object type with a property is a subtype of `object`, which is a subtype of `{}`.
+
 6. `T[]` is a subtype of `Array`.
-7. `[T, T]` is a subtype of `Array`, as well as a subtype of `T[]`. This is different, and much less safe, than Haskell.
-8. `(t: T) => U` is a subtype of `Function`.
+
+7. `[T, T]` is a subtype of `Array`, as well as a subtype of `T[]`. This is different than Haskell, where tuples are not related to lists.
+
+8. `(t: T) => U` is a subtype of `Function`. Do not use `Function`.
 
 ### Apparent/boxed types
 
@@ -129,7 +131,7 @@ type `number` and the boxed type `Number`.
 
 Typescript uses the type `any` whenever it can't tell what the type of
 an expression should be. Compared to `Dynamic`, calling `any` a type
-is an overstatement. It mostly just turns off the type checker
+is an overstatement. It just turns off the type checker
 wherever it appears. For example, you can push anything into an
 `any[]` without marking it in any way:
 
@@ -167,14 +169,15 @@ let o: { x: string } = { x: "hi", extra: 1 }; // ok
 let o2: { x: string } = o; // ok
 ```
 
-That is, object literals construct a matching literal type. That
-object literal type is assignable to some other object type as long as
+Here, the object literal `{ x: "hi", extra: 1 }` constructs a matching
+literal type `{ x: string, extra: number }`. That
+type is assignable to `{ x: string }` since
 it has all the required properties and those properties have
-assignable types.
+assignable types. The extra property doesn't prevent assignment.
 
 This is true for named types as well; for assignability purposes
 there's no difference between the type alias `One` and the interface
-type `Two`. They both have a property `p: string`. (The behaviour with
+type `Two` below. They both have a property `p: string`. (The behaviour with
 respect to recursive definitions and type parameters is slightly
 different, however.)
 
@@ -190,20 +193,18 @@ two = new Three();
 
 ## Merging
 
-And now for something completely different.
-
 Typescript tries to provide types for Javascript values, but,
 especially early in its life, the number of type constructors it had
 was limited, and usually based on OO. To increase the expressivity of
 this system, Typescript merges structures of different kinds that have
-the same name. Programmers can combine structures to represent a
+the same name. You can combine structures to represent a
 single Javascript value with multiple Typescript types.
 
 For example, you can represent a function that also has properties, or
 nested types:
 
 ```ts
-function pad(s: string, n: number, char: string, direction: pad.Direction) {
+function pad(s: string, n: number, char: string, direction: pad.Direction): string {
 }
 namespace pad {
     export type Direction = "left" | "right";
@@ -303,8 +304,8 @@ function  | `typeof f === "function"`
 array     | `Array.isArray(a)`
 object    | `typeof o === "object"`
 
-Note that functions and arrays are technically objects, but still have
-their own predicates.
+Note that functions and arrays are objects at runtime, but have their
+own predicates.
 
 ### Intersections
 
@@ -315,8 +316,9 @@ type Combined = { a: number } & { b: string }
 type Conflicting = { a: number } & { a: string }
 ```
 
-Intersection and union are recursive in case of conflicts, so
-`Conflicting.a : number & string`.
+`Combined` has two properties, `a` and `b`, just as if they had been
+written as one object literal type. Intersection and union are
+recursive in case of conflicts, so `Conflicting.a : number & string`.
 
 ## Unit types
 
@@ -344,6 +346,11 @@ Here, `"right": "right"` but `"right"` widens to `string` because
 `string` is not assignable to `"left" | "right"` because it could have
 some other type, like `"chips"`. You'll have to explicitly declare the
 type of `s` to be `"left" | "right"`.
+
+```ts
+let s: "left" | "right" = "right";
+pad("hi", 10, s);
+```
 
 # Concepts similar to Haskell
 
@@ -389,8 +396,22 @@ declare function map<T, U>(ts: T[], f: (t: T) => U): U[];
 
 Contextual typing also works recursively through object literals, and
 on unit types that would otherwise be inferred as `string` or
-`number`. Altogether, this feature can make Typescript's inference
-look a bit like unifying type inference engine, but it is not.
+`number`. And it can infer return types from context:
+
+```ts
+declare function run(thunk: (T: t) => void): T
+let i: { inference: string } = run(o => { o.inference = 'INSERT STATE HERE' });
+```
+
+The type of `o` is determined to be `{ inference: string }` because
+the return type of `run` is `T`, and the call to `run` is the
+initialiser of a variable of type `{ inference: string }`. So type
+parameter inference infer `T={ inference: string }`, leading
+contextual typing to further set `o: { inference: string }` since `o`
+is contextually typed by `T`.
+
+Altogether, this feature can make Typescript's inference look a bit
+like a unifying type inference engine, but it is not.
 
 ## Type aliases
 
@@ -428,7 +449,7 @@ type Shape =
 
 Unlike Haskell, the tag, or discriminant, is just a property in each
 object type. Each variant has an identical property with a different
-unit type. Also, this is still a normal union type; the leading `|` is
+unit type. This is still a normal union type; the leading `|` is
 an optional part of the union type syntax. You can discriminate the
 members of the union using normal Javascript code:
 
@@ -445,6 +466,10 @@ function area(s: Shape) {
     }
 }
 ```
+
+Note that the return type is `area` is inferred to be `number` because
+Typescript knows the function is total. If some variant is not
+covered, the return type of `area` will be `number | undefined` instead.
 
 Also unlike Haskell, common properties show up in any union, so you
 usefully discriminate multiple members of the union:
@@ -481,6 +506,9 @@ function firstish<T extends { length: number }>(t1: T, t2: T): T {
     return t1.length > t2.length ? t1 : t2;
 }
 ```
+
+Typescript can usually infer type arguments from a call based on the
+type of the arguments, so type arguments are usually not needed.
 
 Because Typescript is structural, it doesn't need type parameters as
 much as nominal systems. Specifically, they are not needed to make a
@@ -520,7 +548,7 @@ import * as prefix from '../lib/third-package'
 You can also import commonjs modules -- modules written using node.js'
 module system:
 
-``ts
+```ts
 import f = require('single-function-package');
 ```
 
