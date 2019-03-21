@@ -24,7 +24,7 @@ Posts:
  * [Typescript for Functional Programmers](Typescript-for-Functional-Programmers.md)
 
 
- * [How to upgrade to Typescript without anybody noticing](How-to-upgrade-to-Typescript-without-anybody-noticing.md)
-   Or, split into [part 1](How-to-upgrade-to-Typescript-without-anybody-noticing-part-1.md) and [part 2](How-to-upgrade-to-Typescript-without-anybody-noticing-part-2.md).
+ * [How to upgrade to Typescript without anybody noticing, part 1](How-to-upgrade-to-Typescript-without-anybody-noticing-part-1.md)
+   and [part 2](How-to-upgrade-to-Typescript-without-anybody-noticing-part-2.md).
  * [Upgrade node library to Typescript](Upgrade-node-library-to-Typescript.md)
 This site uses Google Analytics to track usage.
