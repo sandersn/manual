@@ -12,27 +12,27 @@ Typescript differs from Haskell's type system. It also describes
 unique features of Typescript's type system that arise from its
 modelling of Javascript code.
 
+This introduction does not cover object-oriented programming. In
+practise, object-oriented programs in Typescript are similar to those
+in other popular languages with OO features.
+
 # Prerequisites
 
 In this introduction, I assume you know the following:
 
 - How to program in Javascript, the good parts.
-- Type syntax of a C-descended language, including the syntax for type parameters.
-- Semantics of a mainstream object-oriented type system.
+- Type syntax of a C-descended language.
 
 If you need to learn the good parts of Javascript, read
 [JavaScript: The Good Parts](http://shop.oreilly.com/product/9780596517748.do).
 You may be able to skip the book if you know how to write programs in
 a call-by-value lexically scoped language with lots of mutability and
 not much else.
+[R<sup>4</sup>RS Scheme](https://people.csail.mit.edu/jaffer/r4rs.pdf) is a good example.
 
 [The C++ Programming Language](http://www.stroustrup.com/4th.html) is
 a good place to learn about C-style type syntax. Unlike C++, Typescript uses postfix types, like so: `x: string` instead
 of `string x`.
-
-I don't know a single place to learn the mushy concept of "mainstream
-object-oriented type system", so just read section III of
-[Types and Programming Languages](https://www.cis.upenn.edu/~bcpierce/tapl/).
 
 # Concepts not in Haskell
 
@@ -52,13 +52,6 @@ Type        | Explanation
 
 [See the MDN page for more detail](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Data_structures).
 
-Notes:
-
-1. I'm not joking. The only built-in numbers are floating points.
-2. `Symbol('foo') !== Symbol('foo')`, so symbols are not like Lisp or Ruby atoms.
-3. You can think of Javascript as a hasty copy of Scheme and you'd be nearly right.
-4. Except for the inanely detailed implementation of object orientation, which you should avoid.
-
 Typescript has corresponding primitive types for the built-in types:
 
 * `number`
@@ -71,11 +64,10 @@ Typescript has corresponding primitive types for the built-in types:
 
 Notes:
 
-`null` and `undefined` are semantically different. They're both
-unit types with a single value each, `null` and `undefined`, but the
-runtime never produces `null`. It is reserved for authors to use. As a
-consequence, nobody ever uses it. `undefined` is considerably more
-popular.
+`null` and `undefined` are semantically different. They're both unit
+types with a single value each, `null` and `undefined`, but the
+runtime never produces `null`. It is reserved for authors to use.
+Despite this, `undefined` is frequently used by authors instead.
 
 ### Other important types
 
@@ -85,10 +77,10 @@ Type        | Explanation
 `never` | the bottom type.
 `{}` | the smallest non-null, non-undefined type.
 object literal | eg `{ property: Type }`
-`void` | a subtype of `undefined` intended for use by C programmers as a return type.
+`void` | a subtype of `undefined` intended for use as a return type.
 `T[]` | mutable arrays, also written `Array<T>`
-`[T,T]` | tuples
-`Function` | all functions, even dynamically evaluated ones
+`[T,T]` | tuples, which are fixed-length but mutable
+`Function` | all functions, even ones produces from `eval`
 
 Notes:
 
@@ -96,7 +88,7 @@ Notes:
 
     ```ts
     let fst: (a: any, d: any) => any = (a,d) => a;
-    // or more accurately:
+    // or more precisely:
     let snd: <T, U>(a: T, d: U) => U = (a,d) => d.
     ```
 
@@ -114,7 +106,7 @@ everything except `null` and `undefined`.
 
 5. Even more confusingly, any object type with a property is a subtype of `object`, which is a subtype of `{}`.
 
-6. `T[]` is a subtype of `Array`.
+6. `T[]` is a subtype of `Array` for any type `T`.
 
 7. `[T, T]` is a subtype of `Array`, as well as a subtype of `T[]`. This is different than Haskell, where tuples are not related to lists.
 
@@ -125,7 +117,17 @@ everything except `null` and `undefined`.
 Javascript has boxed equivalents of primitive types that contain the
 methods that programmers associate with those types. Typescript
 reflects this with, for example, the difference between the primitive
-type `number` and the boxed type `Number`.
+type `number` and the boxed type `Number`. The boxed types are rarely
+needed, since their methods return primitives.
+
+```ts
+1..toExponential()
+// equivalent to
+Number.prototype.toExponential.call(1)
+```
+
+Note that calling methods on numeric literals requires an additional
+`.` to aid the parser.
 
 ## Gradual typing
 
@@ -161,7 +163,7 @@ To get an error when Typescript produces an `any`, use `"noImplicitAny": true`, 
 ## Structural typing
 
 Structural typing is a familiar concept to most functional
-programmers, although Haskell and most MLs are not actually
+programmers, although Haskell and most MLs are not
 structurally typed. Its basic form is pretty simple:
 
 ```ts
@@ -189,70 +191,6 @@ class Three { p = "Hello" };
 let x: One = { p: 'hi' };
 let two: Two = x;
 two = new Three();
-```
-
-## Merging
-
-Typescript tries to provide types for Javascript values, but,
-especially early in its life, the number of type constructors it had
-was limited, and usually based on OO. To increase the expressivity of
-this system, Typescript merges structures of different kinds that have
-the same name. You can combine structures to represent a
-single Javascript value with multiple Typescript types.
-
-For example, you can represent a function that also has properties, or
-nested types:
-
-```ts
-function pad(s: string, n: number, char: string, direction: pad.Direction): string {
-}
-namespace pad {
-    export type Direction = "left" | "right";
-    export const space = " ";
-    export const tab = "\t";
-    export const dot = ".";
-}
-pad('hi', 10, pad.dot, "left");
-```
-
-You merge any two things that will not collide. This works across
-files too:
-
-```ts
-// @Filename: main.ts
-interface Main {
-    // lots of properties here
-}
-
-// @Filename: extra.ts
-interface Main {
-    extra: boolean;
-}
-```
-
-## Ambient declarations
-
-It may be necessary to declare that some Javascript value exists, even
-though Typescript doesn't know about it. The declarations are called
-"ambient declarations":
-
-```ts
-interface JQuery {
-    // types here!
-}
-declare var $: JQuery;
-```
-
-This is also useful for modules:
-
-```ts
-declare module "jquery" {
-  interface JQuery {
-      // types here!
-  }
-  declare var $: JQuery;
-  export = $;
-}
 ```
 
 ## Unions
@@ -318,7 +256,7 @@ type Conflicting = { a: number } & { a: string }
 
 `Combined` has two properties, `a` and `b`, just as if they had been
 written as one object literal type. Intersection and union are
-recursive in case of conflicts, so `Conflicting.a : number & string`.
+recursive in case of conflicts, so `Conflicting.a: number & string`.
 
 ## Unit types
 
@@ -334,22 +272,108 @@ pad("hi", 10, "left");
 ```
 When needed, the compiler *widens* &mdash; converts to a
 supertype &mdash; the unit type to the primitive type, such as `"foo"`
-to `string`. However, it make some usages difficult:
+to `string`. This happens when using mutability, which can hamper some
+uses of mutable variables:
 
 ```ts
 let s = "right";
-pad("hi", 10, s);
+pad("hi", 10, s); // error: 'string' is not assignable to '"left" | "right"'
 ```
 
-Here, `"right": "right"` but `"right"` widens to `string` because
-`let` declares a mutable variable. This means that `s: string`, and
-`string` is not assignable to `"left" | "right"` because it could have
-some other type, like `"chips"`. You'll have to explicitly declare the
-type of `s` to be `"left" | "right"`.
+Here's how the error happens:
+
+* `"right": "right"`
+* `s: string` because `"right"` widens to `string` on assignment to a mutable variable.
+* `string` is not assignable to `"left" | "right"`
+
+You can work around this with a type annotation for `s`, but that
+in turn prevents assignments to `s` of variables that are not of type
+`"left" | "right"`.
 
 ```ts
 let s: "left" | "right" = "right";
 pad("hi", 10, s);
+```
+
+## Ambient declarations
+
+It may be necessary to declare that a Javascript value exists, even
+though it is not part of the compilation. These declarations are called
+"ambient declarations". They are particularly common when modelling
+global code in the browser:
+
+```ts
+interface JQuery {
+    // types here!
+}
+declare var $: JQuery;
+```
+
+But they can also be used to declare an entire module:
+
+```ts
+declare module "jquery" {
+  interface JQuery {
+      // types here!
+  }
+  declare var $: JQuery;
+  export = $;
+}
+```
+
+For an entire module, however, the usual Typescript solution is to
+create a separate file with the extension `.d.ts`:
+
+```ts
+// @Filename: jquery.d.ts
+interface JQuery {
+    // types here!
+}
+declare var $: JQuery;
+export = $;
+```
+
+A `.d.ts` will be used in place of a Javascript file, or even
+Typescript file, if put in the correct location. See the section on
+Declaration Files for more information.
+
+## Merging
+
+Typescript tries to provide types for Javascript values, but,
+especially early in its life, the number of type constructors it had
+was limited, and usually based on OO. To increase the expressivity of
+this system, Typescript merges structures of different kinds that have
+the same name. You can combine structures to represent a
+single Javascript value with multiple Typescript declarations.
+
+For example, you can represent a function that also has properties, or
+nested types:
+
+```ts
+function pad(s: string, n: number, char: string, direction: pad.Direction): string {
+}
+namespace pad {
+    export type Direction = "left" | "right";
+    export const space = " ";
+    export const tab = "\t";
+    export const dot = ".";
+}
+pad('hi', 10, pad.dot, "left");
+```
+
+You can merge any two things that do not collide. This works across
+files too:
+
+```ts
+// @Filename: main.ts
+interface Main {
+    // lots of properties here
+}
+
+// @Filename: extra.ts
+interface Main {
+    extra: boolean;
+}
 ```
 
 # Concepts similar to Haskell
@@ -367,20 +391,11 @@ But it also infers types in a few other places that you may not expect
 if you've worked with other C-syntax languages:
 
 ```ts
-// functions
-[1,2,3].map(n => n) // n: number
-```
-
-Here `n: number`, as determined by the type of `Array<number>.map`.
-However, contextually typed lambdas can participate usefully in calls
-where the type parameters must still be inferred:
-
-```ts
 declare function map<T, U>(f: (t: T) => U, ts: T[]): U[];
 let sns = map(n => n.toString(), [1,2,3]);
 ```
 
-`n: number` in this example also, despite the fact that `T` and `U`
+Here, `n: number` in this example also, despite the fact that `T` and `U`
 have not been inferred before the call. In fact, after `[1,2,3]` has
 been used to infer `T=number`, the return type of `n => n.toString()`
 is used to infer `U=string`, causing `sns` to have the type
@@ -399,17 +414,22 @@ on unit types that would otherwise be inferred as `string` or
 `number`. And it can infer return types from context:
 
 ```ts
-declare function run(thunk: (T: t) => void): T
+declare function run<T>(thunk: (t: T) => void): T
 let i: { inference: string } = run(o => { o.inference = 'INSERT STATE HERE' });
 ```
 
 The type of `o` is determined to be `{ inference: string }` because
-the return type of `run` is `T`, and the call to `run` is the
-initialiser of a variable of type `{ inference: string }`. So type
-parameter inference infer `T={ inference: string }`, leading
-contextual typing to further set `o: { inference: string }` since `o`
-is contextually typed by `T`.
 
+1. Declaration initialisers are contextually typed by the
+declaration's type: `{ inference: string }`.
+2. The return type of a call uses the contextual type for inferences,
+so the compiler infers that `T={ inference: string }`.
+3. Arrow functions use the contextual type to type their parameters,
+so the compiler gives `o: { inference: string }`.
+
+And it does so while you are typing, so that after typing `o.`, you
+get completions for the property `inference`, along with any other
+properties you'd have in a real program.
 Altogether, this feature can make Typescript's inference look a bit
 like a unifying type inference engine, but it is not.
 
@@ -472,7 +492,7 @@ Typescript knows the function is total. If some variant is not
 covered, the return type of `area` will be `number | undefined` instead.
 
 Also unlike Haskell, common properties show up in any union, so you
-usefully discriminate multiple members of the union:
+can usefully discriminate multiple members of the union:
 
 ```ts
 function height(s: Shape) {
@@ -537,7 +557,8 @@ function length<T extends ArrayLike<unknown>, U>(m: T<U>) {
 
 ## Module system
 
-Javascript's modern module syntax is a bit like Haskell's:
+Javascript's modern module syntax is a bit like Haskell's, except that
+any file with `import` or `export` is implicitly a module:
 
 ```ts
 import { value, Type } from 'npm-package'
@@ -545,7 +566,7 @@ import { other, Types } from './local-package'
 import * as prefix from '../lib/third-package'
 ```
 
-You can also import commonjs modules -- modules written using node.js'
+You can also import commonjs modules &mdash; modules written using node.js'
 module system:
 
 ```ts
@@ -606,12 +627,14 @@ rx.x = 12; // error
 ```
 
 And it has a specific `ReadonlyArray<T>` type that removes
-side-affecting methods and prevents writing to indices of the array:
+side-affecting methods and prevents writing to indices of the array,
+as well as special syntax for this type:
 
 ```ts
 let a: ReadonlyArray<number> = [1, 2, 3];
-a.push(102);
-a[0] = 101;
+let b: readonly number[] = [1, 2, 3];
+a.push(102); // error
+b[0] = 101; // error
 ```
 
 You can also use a const-assertion, which operates on arrays and
@@ -619,8 +642,8 @@ object literals:
 
 ```ts
 let a = [1, 2, 3] as const;
-a.push(102);
-a[0] = 101;
+a.push(102); // error
+a[0] = 101; // error
 ```
 
 However, none of these options are the default, so they are not
