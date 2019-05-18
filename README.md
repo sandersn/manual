@@ -18,6 +18,7 @@ Posts:
  * [Widening and Narrowing in Typescript](Widening-and-Narrowing-in-Typescript.md)
  * [Assignability](Assignability.md)
  * [Why ThisType?](Why-ThisType.md)
+ * [Triple `this`](Triple-this.md)
  * [Workarounds for Out of Memory Crashes](Workarounds-for-Out-of-Memory-Crashes.md)
  * [Checker reduction plan](Checker-reduction-plan.md)
  * [What Definitely Not To Do To Definitely Typed To Do Well](Definitely-Typed-rotation.md)
