@@ -1,3 +1,5 @@
+# Improving Typescript Migration #
+
 When migrating code for Typescript you generally have to worry about
 three categories of code: the new code you want to write, the old code
 you already have, and the dependencies for your project.
@@ -9,43 +11,52 @@ and responses on twitter, I think the two biggest problems are:
 1. Getting types for dependencies; they can be incorrect, out-of-date or missing.
 2. Adding types to tricky Javascript code.
 
-From recent responses on twitter, 
+From recent responses on twitter, I found that both problems were
+about equally common. This agrees with survey data for checkJS from
+last year, which found that users were generally happy with Javascript
+features.
 
-Answer: it is about the same -- people have lots of bad JS that takes
-a while to convert, but they also have lots of missing dependencies or
-just bad types from elsewhere. Our documentation isn't great either.
+Based on this, I propose that we improve handling of dependency's
+types, and research what could be done to add types to complex
+Javascript. I'll cover two kinds of dependency problems:
 
-2. What to do about old code? Convert it to TS or cover it with a d.ts?
+## Bad Types ##
 
-Answer: Mostly people want to convert it to TS. They would prefer good
-types but at least want some types. Splattering any everywhere would
-not be viewed as a solution, just a TODO from the tool. And they
-already HAVE the errors when they turn on noImplicitAny, so we're not
-doing a huge favour there. It's unlikely that we can write a converter
-that is 3-4x smarter than a Typescript novice.
+Types can be bad for several reasons: they could be
+1. incomplete
+2. for the wrong version of the package
+3. incorrect
 
-Full-file type inference codefixing is ... an OK idea. It speeds up
-the task, but that's not what people have complained about --
-especially since any-as-default works pretty well already.
+A user finds out that types are bad by seeing errors in code that
+consumes the package. We assume the user's code is correct since this
+is a migration scenario, and can use that code to figure out the
+correct fix to the bad types.
 
-Fix two problems:
+We should provide a tool that
+1. Diagnoses which problem you have.
+2. If the version is wrong, it installs the correct version.
+3. If the types are partly incorrect, it clones the types into your
+   repo and overrides those types.
+4. If the types are partly missing, it does the same thing. It can
+   also use the package's Javascript source to infer types.
 
-1. Bad types
-  When you get bad types, run this tool.
-  You give it your consuming code that you THINK is correct.
-  It will
-  1. check different versions for matches to your API if it's on DT
-  2. override the types based on your consuming code
-  3. let you run the tool again to submit the update to DT (or non-DT package)
-2. Missing types
-  When you are missing types, run this tool.
-  You give it your consuming code.
-  It will.
-  1. check for DT types. (with version matching as above)
-  2. create types based on the original library + your consuming code.
-  3. let you run the tool again to submit the new types to DT (or non-DT package??)
+## Missing Types ##
 
-Implementation:
+Missing types are similar to partly missing types above. We can use
+the user's code to infer what the types should be, as well as look at
+the package's source code.
+
+We should provide a tool that
+1. checks for types on Definitely Typed. (with version matching as above)
+2. creates types based on the original library + your consuming code.
+
+In both scenarios, if you end up with a local typing in your
+repository, the tool should allow you to submit the typings to
+Definitely Typed or to the package owner.
+
+## Implementation ##
+
+Here are the large-ish features needed for this tool.
 
 1. d.ts from usage
 2. Better understanding of UMD/AMD -- needed for npm-shipped JS.
@@ -58,6 +69,8 @@ Implementation:
 Step (3) is a hard, but valuable, problem to solve completely and
 correctly. It would also be useful for incrementally building projects
 that contain JS.
+
+## JS to TS conversion ##
 
 At the same time, we should research file-by-file conversion to Typescript:
 
@@ -73,27 +86,7 @@ This will tell us how difficult the problem currently is -- whether a
 machine could feasibly fix the problems that remain after running our
 current codefixes.
 
-Current ideas:
-
-
-* Typestat upgrade
-  * polish unfinished parts
-  * make sure whole-file inference works correctly
-* dts-gen upgrade
-  * fix workflow for "missing dependency"
-  * checks EXISTING types
-  * checks EXISTING types
-* Definitely Typed
-  * process improvements
-  * documentation improvements
-* 3.5-to-3.6 (new or upgrade to Typestat)
-* React: ??? -- Andrew is thinking about this
-* Build: ???
-* Just a solid way to make sure the IDE can run all relevant codefixes
-  on renaming JS -> TS (and make sure all the JS-specific features
-  have codefixes, and least some do not I think)
-
-Analysis of replies on Twitter:
+# Appendix A: Analysis of replies on Twitter #
 
 ## Types ##
 
