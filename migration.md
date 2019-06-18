@@ -90,32 +90,32 @@ current codefixes.
 
 ## Types ##
 
-Missing types for dependencies (or own dependencies): 6
-Bad types from dependencies: 7
-Hard add complex types to old code: 1
+- Missing types for dependencies (or own dependencies): 6
+- Bad types from dependencies: 7
+- Hard add complex types to old code: 1
 
 ## Errors ##
 
-bad/dynamic js: 11
-implicit any: 1
-complex types: 1
+- bad/dynamic js: 11
+- implicit any: 1
+- complex types: 1
 
 ## Documentation ##
 
-No file-by-file tutorial: 1
-export=/import = require: 2
-  twitter suggests: support const foo = require/module.exports =
-Time needed to teach Typescript: 2
-Types too complex to understand: 1
+- No file-by-file tutorial: 1
+- export=/import = require: 2
+    twitter suggests: support const foo = require/module.exports =
+- Time needed to teach Typescript: 2
+- Types too complex to understand: 1
 
 ## Other ##
 
-react: 3
-  especially higher order components
-build: 3
-  one each from closure, babel and webpack
-tests with ts-node: 3
-  twitter suggests: ts-jest
+- react: 3
+    especially higher order components
+- build: 3
+    one each from closure, babel and webpack
+- tests with ts-node: 3
+    twitter suggests: ts-jest
 
 
 Other subjects: create-react-app, globals, classes (?)
