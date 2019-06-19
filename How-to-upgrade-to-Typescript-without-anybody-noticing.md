@@ -304,7 +304,7 @@ just like a dynamic import, except that it's used as a type. So, just
 like you could write:
 
 ```js
-const estree = import("estree);
+const estree = import("estree");
 ```
 
 to dynamically import the `Identifier` type from estree, you can write:
