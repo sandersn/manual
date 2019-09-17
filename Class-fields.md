@@ -35,6 +35,120 @@
 
 ### Examples
 
+#### Property overriding accessor, with Set semantics:
+
+```ts
+class CleverBase {
+  _p: unknown
+  get p() {
+    return _p
+  }
+  set p(value) {
+    // cache or transform or register or ...
+    _p = value
+  }
+}
+class SimpleUser extends CleverBase {
+  // base setter runs, caching happens
+  p = "just fill in some property values"
+}
+class DeviousUser extends CleverBase {
+  constructor() {
+    Object.defineProperty(this, "p", { value: "skips base setter, no caching" })
+  }
+}
+```
+
+Property overriding accessor, with Define semantics:
+
+```ts
+class CleverBase {
+  _p: unknown
+  get p() {
+    return _p
+  }
+  set p(value) {
+    // cache or transform or register or ...
+    _p = value
+  }
+}
+class SimpleUser extends CleverBase {
+  constructor() {
+    // base setter runs, caching happens
+    this.p = "just fill in some property values"
+  }
+}
+class DeviousUser extends CleverBase {
+  p = "skips base setter, no caching"
+}
+```
+
+Notably, opinions differ on whether SimpleUser or DeviousUser is the
+common case. I observed SimpleUser in the wild in Angular 2. I haven't
+seen DeviousUser.
+
+To avoid the new error, SimpleUser has to switch to a set in the
+constructor. DeviousUser has to use a `defineProperty` in the constructor.
+
+#### Accessor overriding property, with Set semantics:
+
+```ts
+class LegacyBase {
+  p = 1
+}
+class SmartDerived extends LegacyBase {
+  get() {
+    // clever work on get
+  }
+  set(value) {
+    // additional work to skip initial set from the base
+    // clever work on set
+  }
+}
+class SmarterDerived extends LegacyBase {
+  constructor() {
+    Object.defineProperty(this, "p", {
+      get() {
+        // clever work on get
+      },
+      set(value) {
+        // clever work on set
+      }
+    })
+  }
+}
+```
+
+Neither solution works with class field with Define semantics.
+Well, SmarterDerived still works the same:
+
+```ts
+class LegacyBase {
+  p = 1
+}
+class SmarterDerived extends LegacyBase {
+  constructor() {
+    Object.defineProperty(this, "p", {
+      get() {
+        // clever work on get
+      },
+      set(value) {
+        // clever work on set
+      }
+    })
+  }
+}
+```
+
+The only way to avoid the error (without changing LegacyBase) is to
+use defineProperty in the constructor. This avoids some confusing code
+in SmartDerived (or subtly wrong, since the common case will be to
+forget the additional work to skip initial set.)
+
+I have no idea how to communicate to users which fix to choose. Or
+even that set in the constructor is a common fix, or that
+defineProperty is possible in the constructor.
+
 ### Details
 
 ### Caveats
@@ -54,6 +168,18 @@ This declaration is erased, like the original declaration in old versions of TS
 ### Caveats
 
 ### Breaks
+
+1. Technically incorrect class hierarchies like Azure SDK, VS Code.
+   They redeclare supertype properties with a derived type and then
+   rely on bivariance.
+1. Technically similar, but the base property type is any or unknown.
+2. Redundant redeclarations, eg Babylon, F12, Firestore, Skype.
+   This could be
+   1. cut-and-paste
+   2. a love of locality.
+   3. not being sure whether the base defines the property.
+
+   Either way the authors will be surprised by Define semantics and need to switch.
 
 ## Always emit accessors in d.ts
 
@@ -102,6 +228,3 @@ declare class C {
 ### Examples
 
 ### Details
-
-When flag is false
-
