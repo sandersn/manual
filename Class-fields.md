@@ -1,4 +1,4 @@
-# Where We Are
+# Plan
 
 ## In 3.6
 
@@ -258,6 +258,7 @@ class C extends B {
 class D extends B {
   declare p: 1 | 2 | 3
 }
+```
 
 ### Breaks
 
