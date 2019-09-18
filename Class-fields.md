@@ -219,16 +219,45 @@ don't get this error.
 
 ## Disallow uninitialised override properties
 
-- Introduce new syntax, class C extends B { declare x: number }
-- Introduce a codefix that inserts declare where needed.
-- This declaration is erased, like the original declaration in old versions of TS
+- Property declarations without initialisers that override a base
+  property must use new syntax:
+- `class C extends B { declare p: number }`
+- This declaration is erased
+- Without `declare`, issue an error.
+- A codefix inserts `declare` where needed.
 - Open question: syntax bikeshed
+
+- The error is not issued when:
+  - The derived property is already in an ambient context
+  - TODO The base is in an interface
+  - The base or derived properties are abstract
+  - The derived property results from a mixin (there is no actual declaration then)
+  - The property is initialised in the constructor
+  - (note: without strictNullChecks we can't detect this, so always issue the error)
 
 ### Examples
 
-### Details
+```ts
+class B {
+  p: number
+}
+class C extends B {
+  p: number
+}
+class D extends B {
+  p: 1 | 2 | 3
+}
+```
 
-### Caveats
+- `C` and `D` now need to be written as:
+
+```ts
+class C extends B {
+  declare p: number
+}
+class D extends B {
+  declare p: 1 | 2 | 3
+}
 
 ### Breaks
 
@@ -292,12 +321,46 @@ declare class C {
 - When `"legacyClassFields": false`:
   * Fields in class bodies are emitted as-is for ESNext.
   * Fields in class bodies are emitted as Object.defineProperty assignments in the constructor otherwise.
-- In 3.7, "legacyClassFields" defaults to true`
+- In 3.7, "legacyClassFields" defaults to true
 - Declaration emit is the same regardless of the flag's value.
 
 ### Examples
 
-### Details
+```ts
+class C {
+  p1 = 1
+  p2
+  [computed] = 2
+}
+```
+
+with `"legacyClassFields": false`, downlevels to:
+
+```js
+class C {
+  constructor() {
+    Object.defineProperty(this, "p1", { value: 1 });
+    Object.defineProperty(this, "p2", { value: undefined });
+    Object.defineProperty(this, computed, { value: 2 });
+  }
+}
+```
+
+with `"legacyClassFields": true`, downlevels to:
+
+```js
+class C {
+  constructor() {
+    this.p1 = 1;
+    this[computed] = 2;
+  }
+}
+```
+
+Note:
+
+1. This transform happens even when the target is ESNext.
+2. `p2` is erased.
 
 <!--
 
