@@ -1,4 +1,16 @@
-# Plan (summary)
+# Where We Are
+
+## In 3.6
+
+1. Allow accessors in d.ts files.
+
+## For 3.7
+
+1. Emit accessors in d.ts.
+2. Two new errors: one for Define semantics, one for uninitialised properties.
+3. Add a flag to emit Define when on, silence the new errors when off.
+
+# Plan 
 
 ## 3.6
 
@@ -8,22 +20,24 @@
 
 # 3.7
 
-- #33470: generate accessors in declaration files
+- #33470: always generate accessors in declaration files
 - #33401: accessors may not override properties and vice versa.
 - #33423: uninitialised properties may not override properties.
-- New flag, `legacyClassFields`, to switch between set-vs-define emit.
+- New flag, `legacyClassFields`, to switch between set-vs-define .js emit.
 
 ## Disallow accessor/property overrides
 
 - Properties can only override properties
 - Accessors can only override accessors
+- Except when the base is abstract or an interface
+  - abstract: nothing there to interfere
+  - interface: we pretend there's not
+- Open question: whether to provide codefixes for either error.
 
-- Accessor overriding property is confusing with Set.
-  (and most people who use it will think they are being clever)
-- And it doesn't work with Define.
-- Property overriding accessor doesn't work with Define either.
-- Assuming that 'work' means that the base gets to do something
-  clever.
+### Property overrides accessor
+
+- Property overriding accessor doesn't work with Define.
+- Assuming that 'work' means that the base gets to do something clever.
 
 <!--
 - "Some" TC39 "members" think this is a "feature", citing locality.
@@ -33,9 +47,6 @@
   person.
 -->
 
-### Examples
-
-#### Property overriding accessor, with Set semantics:
 
 ```ts
 class CleverBase {
@@ -52,12 +63,82 @@ class SimpleUser extends CleverBase {
   // base setter runs, caching happens
   p = "just fill in some property values"
 }
+```
+
+<!--
+
 class DeviousUser extends CleverBase {
   constructor() {
     Object.defineProperty(this, "p", { value: "skips base setter, no caching" })
   }
 }
+
+-->
+
+- SimpleUser is broken when switching to Define semantics.
+- So we'll issue an error.
+- Migrating is simple but not immediately obvious.
+- Switch to an assignment in the constructor.
+
+```ts
+class SimpleUser extends CleverBase {
+  constructor() {
+    // base setter runs, caching happens
+    this.p = "just fill in some property values"
+  }
+}
 ```
+
+### Accessor overrides property
+
+- Accessor overriding property with Set *almost* lets you avoid the
+  base class property.
+- But the base class still calls the derived accessor when setting the
+  base property.
+- Most people who do this will think they are being clever.
+- And ... it doesn't work at all with Define.
+
+```ts
+class LegacyBase {
+  p = 1
+}
+class SmartDerived extends LegacyBase {
+  get() p {
+    // clever work on get
+  }
+  set(value) p {
+    // additional work to skip initial set from the base
+    // clever work on set
+  }
+}
+```
+
+- SmartDerived is broken when switching to Define semantics.
+- So we'll issue an error.
+- Migrating is simple, but not obvious and does not have exactly the
+  same semantics
+- Specifically, "additional work to skip initial set" needs to be
+  removed.
+- If it was ever there in the first place...
+
+```ts
+class SmarterDerived extends LegacyBase {
+  constructor() {
+    Object.defineProperty(this, "p", {
+      get() {
+        // clever work on get
+      },
+      set(value) {
+        // clever work on set
+      }
+    })
+  }
+}
+```
+
+
+
+<!--
 
 Property overriding accessor, with Define semantics:
 
@@ -83,6 +164,8 @@ class DeviousUser extends CleverBase {
 }
 ```
 
+-->
+
 Notably, opinions differ on whether SimpleUser or DeviousUser is the
 common case. I observed SimpleUser in the wild in Angular 2. I haven't
 seen DeviousUser.
@@ -91,33 +174,6 @@ To avoid the new error, SimpleUser has to switch to a set in the
 constructor. DeviousUser has to use a `defineProperty` in the constructor.
 
 #### Accessor overriding property, with Set semantics:
-
-```ts
-class LegacyBase {
-  p = 1
-}
-class SmartDerived extends LegacyBase {
-  get() {
-    // clever work on get
-  }
-  set(value) {
-    // additional work to skip initial set from the base
-    // clever work on set
-  }
-}
-class SmarterDerived extends LegacyBase {
-  constructor() {
-    Object.defineProperty(this, "p", {
-      get() {
-        // clever work on get
-      },
-      set(value) {
-        // clever work on set
-      }
-    })
-  }
-}
-```
 
 Neither solution works with class field with Define semantics.
 Well, SmarterDerived still works the same:
@@ -149,17 +205,19 @@ I have no idea how to communicate to users which fix to choose. Or
 even that set in the constructor is a common fix, or that
 defineProperty is possible in the constructor.
 
-### Details
-
-### Caveats
-
 ### Breaks
 
+Scattered all over large codebases. There are not a large number of
+breaks, but a significant chunk (30%?) of RWC projects had failures.
+Only a couple in user tests, which consist mostly of JS and therefore
+don't get this error.
+
 ## Disallow uninitialised override properties
-Introduce new syntax, class C extends B { declare x: number }
-Introduce a codefix that inserts declare where needed.
-This declaration is erased, like the original declaration in old versions of TS
-  Introduce a new flag, legacyClassFields.
+
+- Introduce new syntax, class C extends B { declare x: number }
+- Introduce a codefix that inserts declare where needed.
+- This declaration is erased, like the original declaration in old versions of TS
+- Open question: syntax bikeshed
 
 ### Examples
 
@@ -168,6 +226,13 @@ This declaration is erased, like the original declaration in old versions of TS
 ### Caveats
 
 ### Breaks
+
+(TODO 80%) of the uses I saw were *trying* to declare a the existence property or
+refine its type. They want exactly this syntax, although they would be
+unlikely to know it until given an error.
+The remaining uses were declaring the property and initialising it in
+the constructor. With strictNullChecks they would not have received
+the error.
 
 1. Technically incorrect class hierarchies like Azure SDK, VS Code.
    They redeclare supertype properties with a derived type and then
@@ -228,3 +293,116 @@ declare class C {
 ### Examples
 
 ### Details
+
+<!--
+
+## Even More Examples
+
+class CleverCachingBase {
+    _value = 'cleverCachingBase'
+    _clever = new String()
+    get p() {
+        console.log('... getting CleverCachingBase')
+        // do something with _clever 
+        return this._value
+    }
+    set p(value) {
+        this._value = value
+    }
+}
+class SimpleDerived extends CleverCachingBase {
+    p = 'SimpleDerived'
+}
+var sd = new SimpleDerived()
+console.log(sd.p)
+
+////////
+class SimpleWrongBase {
+    p = 'SimpleWrongBase'
+}
+class CleverFixupDerived extends SimpleWrongBase {
+    _value = 'CleverFixupDerived'
+    get p() {
+        console.log('... getting CleverFixupDerived')
+        return this._value
+    }
+    set p(value) {
+        this._value = value
+    }
+}
+var cfd = new CleverFixupDerived()
+console.log(cfd.p)
+
+/////////
+class LazyInitBase {
+    // tag name
+    get p() {
+        console.log('... getting LazyDefaultBase')
+        return 'LazyDefaultBase'
+    }
+    set p(value) {
+        // throw after the first set
+        console.log('... setting LazyDefaultBase to', value)
+    }
+}
+class SimpleOverrideDerived extends LazyInitBase {
+    p = 'SimpleOverrideDerived'
+}
+var sod = new SimpleOverrideDerived()
+console.log(sod.p)
+
+//////////
+class CompositeBase {
+    p = 'compositeBase'
+
+}
+class EmptyDerived extends CompositeBase {
+    get p() {
+        console.log('... getting EmptyDerived')
+        return '0'
+    }
+    set p(value) {
+        console.log('... setting EmptyDerived to', value)
+    }
+}
+var ed = new EmptyDerived()
+console.log(ed.p)
+
+////////
+class SupertypeBase {
+    p: unknown
+}
+class SubtypeDerived extends SupertypeBase {
+    p: number
+}
+
+-->
+
+<!--
+
+Define arguments
+
+= implies Set -VS- Could come up with other syntax.
+Babel and Typescript use Set with (almost) no problems.
+
+JS programmers don't distinguish between imperative and declarative. -VS- git gud
+
+Base classes may be incorrectly initialised if their setters are skipped.
+People will be surprised, they will miss deprecation warnings, whole
+frameworks will explode in flames.
+
+-VS-
+
+Object literal property declarations don't do this!
+ -- LOL! This is just a more extreme git gud argument, in which you
+ have to use moon logic to connect two points that are further away
+ than the nearest logical ones.
+
+Define leaves space for const properties, or types.
+It's also the way that private fields (have to?) work.
+
+The last point is the strongest. The other two are just garbage,
+and there's no real answer for the arguments of familiarity and
+existing, successful practise.
+
+-->
