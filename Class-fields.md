@@ -213,7 +213,7 @@ defineProperty is possible in the constructor.
 ### Breaks
 
 Scattered all over large codebases. There are not a large number of
-breaks, but a significant chunk (30%?) of RWC projects had failures.
+breaks, but 6 RWC projects had failures.
 Only a couple in user tests, which consist mostly of JS and therefore
 don't get this error.
 
@@ -262,24 +262,28 @@ class D extends B {
 
 ### Breaks
 
-(TODO 80%) of the uses I saw were *trying* to declare a the existence property or
-refine its type. They want exactly this syntax, although they would be
-unlikely to know it until given an error.
-The remaining uses were declaring the property and initialising it in
-the constructor. With strictNullChecks they would not have received
-the error.
+No failures from user baselines.
+19 failures from DT.
+RWC had around 100 failures.
 
-1. Technically incorrect class hierarchies like Azure SDK, VS Code.
-   They redeclare supertype properties with a derived type and then
-   rely on bivariance.
-1. Technically similar, but the base property type is any or unknown.
-2. Redundant redeclarations, eg Babylon, F12, Firestore, Skype.
+Most of the uses I saw were *trying* to declare the existence of
+a property or refine its type. They want exactly this syntax, although
+they would be unlikely to know it until given an error. 
+
+1. Declaring a more specific type:
+   1. Deep, entangled hierarchies like Azure SDK, VS Code.
+   2. Parametrisation through overriding like ember, React Native, react-router, React.
+   3. Both are technically the same; both are  usually unsound.
+2. Redundant redeclarations, eg Babylon, F12, Firestore, Skype, Polymer.
    This could be
    1. cut-and-paste
    2. a love of locality.
    3. not being sure whether the base defines the property.
+   4. Wishing for abstract properties in old code bases.
 
-   Either way the authors will be surprised by Define semantics and need to switch.
+The remaining uses were declaring the property and initialising it in
+the constructor. With strictNullChecks they would not have received
+the error, but RWC code mostly predates that.
 
 ## Always emit accessors in d.ts
 

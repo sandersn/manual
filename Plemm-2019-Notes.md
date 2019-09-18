@@ -51,16 +51,65 @@ Uh, and here's his summary: It doesn't work very well yet.
 
 ## Data and software engineering
 
+(Another MS speaker)
+
 How software engineers use data (to make decisions)
 
 1. Effort Estimation
+
+He uses this to nudge people to complete PRs (not totally sure how
+this is connected)
+
 2. New hire ramp up
-3. open-ended github mining
+
+3. Geographical bias in github PR selection
+
+compared to US submitters
+UK, Ca, JP, NL, Switzherland had a HIGHER success rate than US
+
+Germany, ... had LOWER
+
+Same nationality or region, goes up by 19%
+
+Perceived and real bias were neither one affected by language.
+
+Perceived bias only existed against India, both from submitters and integrators.
+But real bias didn't exist for India.
+
+4. End to end machine learning development
+
+## ML+IR for Scalable Crash Resolution
+
+(Information retrieval)
+
+This is not relevant to TS so I didn't listen.
+
+## improving Software Reliability using ML
+
+Large scale data analysis in github said 88% were trivial errors.
+This talk about more ways to do that.
+Discussion of fuzzing, problems and definition.
+Basically, they used ML to reduce the search space of fuzzing.
+The noteworthy part of the research is how well it performs. It's
+really good.
+
+
+## Improving Engineering Productivity at Scale
+
+Google engineer from Engineer Productivity Resarch
+Basically, this is what
+
+How correct do codefixes have to be?
+
+This is an explanation of the scientific method as applied to
+business. Not too technical.
+
+## From conversation
 
 NB Argument selection (order?) bug detection
 
-One of the the authors for the Java paper is here, should ask her.
-Super-simple name-based matching, handles enums. Google has deployed
+Ciera Jaspan, super-simple name-based matching, handles enums. Google has deployed
 it as part of Tricorder
+https://dl.acm.org/citation.cfm?id=2818828
 
 Jaspan, CACM and something else
