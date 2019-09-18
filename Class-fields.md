@@ -10,6 +10,8 @@
 2. Two new errors: one for Define semantics, one for uninitialised properties.
 3. Add a flag to emit Define when on, silence the new errors when off.
 
+<!--
+
 # Plan 
 
 ## 3.6
@@ -18,12 +20,16 @@
 - No changes to .js emit yet
 - No changes to .d.ts emit yet
 
-# 3.7
+## 3.7
 
 - #33470: always generate accessors in declaration files
 - #33401: accessors may not override properties and vice versa.
 - #33423: uninitialised properties may not override properties.
 - New flag, `legacyClassFields`, to switch between set-vs-define .js emit.
+
+-->
+
+# Changes
 
 ## Disallow accessor/property overrides
 
@@ -78,7 +84,6 @@ class DeviousUser extends CleverBase {
 - SimpleUser is broken when switching to Define semantics.
 - So we'll issue an error.
 - Migrating is simple but not immediately obvious.
-- Switch to an assignment in the constructor.
 
 ```ts
 class SimpleUser extends CleverBase {
@@ -122,7 +127,7 @@ class SmartDerived extends LegacyBase {
 - If it was ever there in the first place...
 
 ```ts
-class SmarterDerived extends LegacyBase {
+class SmartDerived extends LegacyBase {
   constructor() {
     Object.defineProperty(this, "p", {
       get() {
@@ -164,8 +169,6 @@ class DeviousUser extends CleverBase {
 }
 ```
 
--->
-
 Notably, opinions differ on whether SimpleUser or DeviousUser is the
 common case. I observed SimpleUser in the wild in Angular 2. I haven't
 seen DeviousUser.
@@ -204,6 +207,8 @@ forget the additional work to skip initial set.)
 I have no idea how to communicate to users which fix to choose. Or
 even that set in the constructor is a common fix, or that
 defineProperty is possible in the constructor.
+
+-->
 
 ### Breaks
 
