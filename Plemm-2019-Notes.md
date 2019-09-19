@@ -97,12 +97,50 @@ really good.
 ## Improving Engineering Productivity at Scale
 
 Google engineer from Engineer Productivity Resarch
-Basically, this is what
 
 How correct do codefixes have to be?
 
 This is an explanation of the scientific method as applied to
 business. Not too technical.
+
+## Neural Program Testing
+
+Fuzzing for Security Bugs
+Yep it's another fuzzing talk.
+Grammar-based fuzzing
+Writing a grammar is annoying and hard
+Inferring a grammar is annoying and lossy
+
+OK so this is just learning a grammar.
+
+Latent representations of grammar. ok ok.
+
+Also an agent that walks around a state space to fuzz the view.
+
+Also repairing student programs. I have no idea how this all relates.
+
+## Github semantic language support
+
+Github's library for multi-lingual static analysis
+- code navigation
+- abstract interpretation
+
+Semantic is written in HaSKeLl. Long explanation follows. But they're
+writing a compiler.
+Blob -> parse using tree-sitter
+convert to generalised asts
+then...Analyse. That's it!
+
+why tree-sitter?
+
+Most of the talk is about writing the "convert to generalised asts"
+step, which used to be a tedious conversion step from the C library.
+
+Oh no it's super specific to github's implementation yet reminiscent
+of problems I've had in the past. I'm learning nothing yet having
+flashbacks.
+
+Template Haskell -- better than .TT files in .NET????
 
 ## From conversation
 

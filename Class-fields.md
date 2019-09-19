@@ -214,8 +214,20 @@ defineProperty is possible in the constructor.
 
 Scattered all over large codebases. There are not a large number of
 breaks, but 6 RWC projects had failures.
-Only a couple in user tests, which consist mostly of JS and therefore
-don't get this error.
+None in user tests.
+DT has 2
+
+Property overrides accessor
+1. Angular 2: the derived class has a decorator which mentions the
+   derived property. I have no idea what the intended semantics are here.
+
+Accessor overrides property:
+1. the copies of VS Code and Azure SDK that we have are so old they
+   didn't have abstract properties. Base should be abstract.
+2. POPULAR MICROSOFT APP 1a: an accessor pair overrides a property, intending to make it readonly.
+3. POPULAR MICROSOFT APP 1b: The getter returns a constant, so seems straightforwardly replaceable with a property. The comment above says "has to be a getter so overriding the base works correctly". Uh-oh.
+5. Babylon: Same, except the accessors are all readonly.
+5. skatejs: Could have used a property
 
 ## Disallow uninitialised override properties
 
