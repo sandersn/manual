@@ -25,7 +25,7 @@
 - #33470: always generate accessors in declaration files
 - #33401: accessors may not override properties and vice versa.
 - #33423: uninitialised properties may not override properties.
-- New flag, `legacyClassFields`, to switch between set-vs-define .js emit.
+- #33509: New flag, `legacyClassFields`, to switch between set-vs-define .js emit.
 
 -->
 

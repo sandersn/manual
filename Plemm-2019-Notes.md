@@ -142,6 +142,89 @@ flashbacks.
 
 Template Haskell -- better than .TT files in .NET????
 
+## Solver-Aided Programming For All
+
+1. embed a solver interface in your language
+   lets you do fancy things like make general assertions and request
+   program synthesis for failed assertions, at the point they fail.
+2. make this easier by providing an interface for writing an
+   interpreter in ??? language, which is then able to translate to SMT
+   solver
+3. Then they provide a translator (compiler? interpreter?) for that
+   language to SMT.
+4. Surprise! The language is Racket. So the translation must be very hard.
+
+They do this using a variation of symbol execution that has merging.
+And they make it better with symbolic profiling!
+
+## Building Compilers Using Data and Formal Methods
+
+Compilers need to adapt to new interesting hardware, adopt new
+features from the boiling bubbling world of programming language ideas.
+
+But I think he's mostly talking about backends.
+Yep, he's complaining about all the ad-hoc pattern-matching for
+optimisations that are in compiler backends.
+...And since this is a solver talk, he's going to find bugs in the
+ad-hoc code (in addition to shaming the field for writing so many).
+
+Automatically look for optimisations with SMT solvers
+- by trying random optimisations
+- by aggressively pruning the space
+- by getting solver to do some of the search
+
+Then you need to decide whether some optimisation is worthwhile.
+
+## What is a Secure Programming Language?
+
+Data driven, based on existing vulnerabilities.
+Maybe she's going to make a language that prevents the common ones by construction?
+
+53% of errors are buffer overflow, injection or information leak.
+A secure language is one that prevents these.
+
+Has a real, live citation of the Tiobe index.
+
+## Twoards fully sanitisable C++, with help from hardware
+
+Memory safe C++ using Hardware Memory Tagging
+
+Without Memory Tagging, they have a clever solution where the
+allocation *sometimes* uses guard pages (term?) and will find errors
+in production for programs with huge scale.
+
+Use 4 bits for every 32 (64? wasn't listening) bits, use a random
+colour. This gives you a percent chance of detecting a bug, but you
+can bump up the prob by tweaking how you allocate the colours.
+
+More overhead than the occasional guard page solution.
+
+## Intellicode!
+
+## Getafix
+
+From big code team on facebook
+
+Learning from diffs
+Look for patterns to find repetitive work
+
+No machine learning here, but there is statistics and quite a bit of data.
+
+## Compilers for High-Perf Computing and Deep Learning
+
+Compilers for HPC is a field. This field and Deep Learning should work
+together to address performance portability. Haha this is what we run
+into all the time, even between versions of V8.
+
+Then: Performance Portability, what's been done already
+
+Polyhedral Compiler Technology
+- a formal representation of nested loops (and transformations)
+- the representation composes
+
+Just started using neural nets.
+
+
 ## From conversation
 
 NB Argument selection (order?) bug detection
