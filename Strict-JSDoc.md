@@ -8,7 +8,8 @@ problems and workarounds.
 For this article, I assume that you know Javascript pretty well, and
 know a little about Typescript and JSDoc.
 
-The most common JSDoc tag you'll see is the `@param` tag:
+The most common JSDoc tag you'll see is the `@param` tag, which lets
+you specify the type of a function parameter:
 
 ```js
 /**
@@ -25,7 +26,50 @@ function repeat(n, s) {
 ```
 
 Typescript will infer the return type of `repeat` for you if it can.
-Recursive functions are the main thing it has trouble with.
+Recursive functions are the main thing it has trouble with. Either
+way, you are free to specify a return type explicitly with `@returns`:
+
+```js
+/**
+ * @param {number} n - you can give a description here
+ * @param {string} s
+ * @returns {string}
+ */
+function repeat(n, s) {
+  var total = "";
+  for (var i = 0; i < n; i++) {
+    total += s
+  }
+  return total
+}
+```
+
+If you need to give the type of a variable inside a function,
+you can use the `@type` tag. Typescript can infer types from
+initialisers, so you'll mostly need this when initialising something
+complex that takes multiple steps, particularly inside a callback,
+where control flow analysis can't reach:
+
+```ts
+/**
+ * @param {unknown[]} l
+ */
+function enumerate(l) {
+  /** @type {Array<[unknown,number]>} */
+  var pairs = []
+  l.forEach((x,i) => pairs.push([x, i]))
+  return pairs
+}
+```
+
+Notice that Typescript supports two syntaxes for arrays: `T[]` and
+`Array<T>`. You can use all the types from Typescript in
+JSDoc, except for a few corners like conditional types. That's because
+Typescript supports additional type syntax from the JSDoc
+documentation generator and the Closure optimizing compiler, which
+conflicts with Typescript's syntax for conditional types. This guide
+only covers Typescript types, though.
+
 
 - Basics
   - `@param`
@@ -61,3 +105,8 @@ Recursive functions are the main thing it has trouble with.
   - Types, especially closure types
     You definitely shouldn't use these even when they're more convenient.
   - what additional types might you want
+
+
+import * as stream from 'stream';
+
+const x: stream.Readable = process.stdin;
