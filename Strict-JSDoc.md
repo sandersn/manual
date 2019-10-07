@@ -111,7 +111,12 @@ This example has more lines of types than of code that runs! In cases
 like this, sometimes the best option is to use simple but inaccurate
 types, or to leave off types entirely.
 
+TODO: Note that type literals end up with double braces
+
 ## Intermediates
+
+
+TODO: Import types should basically come first
 
 The preceding tags will be enough to get you started on type-checking
 your Javascript code. However, there are a few techniques you need to
@@ -263,3 +268,5 @@ Foo.prototype.lazyInit = function(x) {
 
 - Walkthrough 1: All-new JSDoc
 - Walkthrough 2: Upgrading old JSDoc
+- Walkthrough 3 : Kicking the tires for TS
+- Walkthrough 4: Shipping d.ts in a JS project
