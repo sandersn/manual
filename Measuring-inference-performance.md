@@ -1,3 +1,4 @@
+<!--
 # Overview
 
 When I'm working on Typescript's infer-from-usage codefix, which looks
@@ -31,6 +32,7 @@ in the post-codefix state, I can inspect the user tests to learn how
 the codefix works on actual code. The combination of overall
 performance combined with ability to inspect individual changes lets
 me make progress on a problem with a defined end-goal.
+-->
 
 # Implementation
 
