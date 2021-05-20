@@ -52,7 +52,7 @@ really expects a private identifier and *only* a private identifier
 whenever it sees `#`.
 
 
-## Parse PrivateIdentifier as Hash + Identifier
+### Parse PrivateIdentifier as Hash + Identifier
 
 An even bigger change, which I didn't try, is to parse
 PrivateIdentifier as `Hash` + `Identifier`. I think this makes the
