@@ -328,7 +328,7 @@ the real thing later. Here's what you can do:
 2. Add the following code:
 
 ```ts
-declare module "eslint/lib/pattern-visitor" {
+declare module "eslint-scope/lib/pattern-visitor" {
     class OriginalPatternVisitor {
         constructor(x: any, y: any, z: any) {
         }
